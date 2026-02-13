@@ -7,7 +7,9 @@ Define a simplified longitudinal vehicle model for real-time energy estimation w
 The model estimates:
 
 - Instantaneous mechanical power
-- Accumulated energy consumption
+- Accumulated mechanical energy
+- Battery state-of-charge variation (SoC)
+- Electrical energy consumed or recovered
 
 ---
 
@@ -16,8 +18,8 @@ The model estimates:
 - One-dimensional longitudinal motion
 - Flat road (no slope)
 - Constant vehicle parameters
-- No drivetrain efficiency modeling
-- No regenerative braking modeling
+- Simplified drivetrain representation
+- Regenerative braking modeled in simplified form
 - No thermal effects
 
 ---
@@ -28,8 +30,10 @@ The model estimates:
 
 - v(t): longitudinal velocity [m/s]
 - a(t): longitudinal acceleration [m/s²]
-- P(t): instantaneous power [W]
-- E(t): accumulated energy [J]
+- P(t): instantaneous mechanical power [W]
+- E_mech(t): accumulated mechanical energy [J]
+- E_elec(t): electrical energy exchanged with battery [J]
+- SoC(t): battery state of charge [-]
 
 ---
 
@@ -41,6 +45,9 @@ The model estimates:
 - A: frontal area [m²]
 - Cr: rolling resistance coefficient [-]
 - g: gravitational acceleration (9.81 m/s²)
+- η_drive: drivetrain efficiency (simplified)
+- η_regen: regenerative efficiency (simplified)
+- E_batt: nominal battery energy capacity [J]
 
 ---
 
@@ -76,13 +83,16 @@ Expanded form:
 
 P(t) = v(t) · [m·a(t) + 0.5·ρ·Cd·A·v(t)² + Cr·m·g]
 
+When P(t) > 0 → traction power (battery discharge)  
+When P(t) < 0 → regenerative braking (battery charge)
+
 ---
 
 ## 8. Energy Model
 
 ### 8.1 Continuous Form
 
-E(t) = ∫ P(t) dt
+E_mech(t) = ∫ P(t) dt
 
 ---
 
@@ -90,7 +100,21 @@ E(t) = ∫ P(t) dt
 
 For numerical implementation:
 
-Eₖ₊₁ = Eₖ + Pₖ · Δt
+E_mechₖ₊₁ = E_mechₖ + Pₖ · Δt
+
+Electrical energy exchanged with battery:
+
+If Pₖ > 0:
+
+E_elec = Pₖ / η_drive
+
+If Pₖ < 0:
+
+E_elec = Pₖ · η_regen
+
+Battery state-of-charge update:
+
+SoCₖ₊₁ = SoCₖ − (E_elec / E_batt)
 
 Where:
 
@@ -115,19 +139,28 @@ aₖ = (vₖ − vₖ₋₁) / Δt
 
 ## 10. Conceptual Class Structure
 
-The EnergyModel class should:
+The system is structured into:
 
-- Store vehicle parameters
-- Maintain internal accumulated energy state
-- Implement update(v, a, dt)
-- Return instantaneous power and accumulated energy
+EnergyModel:
+- Computes forces and mechanical power
+- Integrates mechanical energy
+
+Battery:
+- Manages SoC dynamics
+- Applies simplified discharge and regeneration logic
+
+VehicleEnergySystem:
+- Coordinates EnergyModel and Battery
+- Provides unified update(v, a, dt)
+- Returns mechanical power, accumulated energy, and SoC
 
 ---
 
 ## 11. Model Limitations
 
 - No road grade modeling
-- No regenerative braking
-- No drivetrain efficiency losses
+- Simplified drivetrain efficiency
+- Simplified regenerative efficiency
+- No thermal effects
 - No lateral dynamics
-- No battery behavior modeling
+- No detailed electrochemical battery model
