@@ -2,16 +2,28 @@
 
 ## Overview
 
-This project implements an energy-aware Digital Twin integrated with the CARLA simulator.  
-The architecture follows a simplified Clean Architecture approach to ensure separation of concerns, modularity and testability.
+This project implements an energy-aware Digital Twin integrated with the CARLA simulator.
 
-The system is organized in layered form to isolate the mathematical energy model, vehicle energy system coordination and battery dynamics from simulation and infrastructure concerns.
+The architecture follows a simplified Clean Architecture approach to ensure:
+
+- Separation of concerns  
+- Modular design  
+- Testability  
+- Future extensibility toward AAS-based Digital Twin integration  
+
+The system isolates:
+
+- The longitudinal energy model  
+- Battery dynamics  
+- Vehicle-level energy coordination  
+- Simulation infrastructure  
+
+This enables independent validation of the mathematical model without dependency on CARLA.
 
 ---
 
 ## Architectural Structure
 
-```bash
 interactive-energy-digital-twin-carla/
 │
 ├── src/
@@ -32,118 +44,225 @@ interactive-energy-digital-twin-carla/
 │
 ├── tests/
 └── docs/
-```
 
 ---
 
-## Architectural Layers
+# Architectural Layers
 
-### 1. Domain Layer
+## 1. Domain Layer
 
-Contains the core mathematical and physical model of the Digital Twin.
+The Domain Layer contains the core physical and mathematical logic of the Digital Twin.
 
-#### Responsibilities
+It is fully independent from CARLA and any infrastructure concerns.
 
-- Longitudinal force modeling  
-- Power computation  
-- Discrete energy integration  
-- Battery state-of-charge management  
-- Vehicle energy system coordination  
-- Internal state management (accumulated energy, SoC)  
-- Structured data transfer via DTOs  
+### Responsibilities
 
-#### Domain Components
+- Longitudinal force modeling
+- Mechanical power computation
+- Discrete energy integration
+- Battery discharge and regeneration
+- State-of-charge (SoC) management
+- Vehicle-level energy coordination
+- Encapsulation of update logic
+- Data transport via DTOs
 
-- `energy_model.py` – longitudinal traction and power model  
-- `vehicle_energy_system.py` – coordinates vehicle-level energy behavior  
-- `battery.py` – battery discharge and regeneration modeling  
-- `dtos.py` – structured request/response data models  
+### Components
 
-#### Restrictions
+- energy_model.py  
+  Implements the longitudinal vehicle dynamics and mechanical energy computation.
 
-- Must not import CARLA  
-- Must not depend on infrastructure  
-- Must not depend on logging  
-- Must be executable independently  
+- battery.py  
+  Models battery discharge and regenerative behavior including efficiency and SoC tracking.
 
----
+- vehicle_energy_system.py  
+  Coordinates energy model and battery interaction.
 
-### 2. Application Layer
+- dtos.py  
+  Provides structured request and response models between layers.
 
-Coordinates system execution.
+### Restrictions
 
-#### Responsibilities
+The Domain Layer:
 
-- Receives simulation data  
-- Converts raw simulator data into structured DTOs  
-- Invokes the energy model and vehicle energy system  
-- Manages execution loop  
-- Coordinates battery and energy updates  
-- Sends results to logging  
-
-This layer connects infrastructure to domain without coupling them.
+- Must not import CARLA
+- Must not depend on infrastructure
+- Must not perform I/O operations
+- Must be executable offline
+- Must remain simulator-agnostic
 
 ---
 
-### 3. Infrastructure Layer
+## 2. Application Layer
 
-Contains external dependencies.
+The Application Layer is responsible for orchestration of the Digital Twin lifecycle.
 
-#### Components
+### Component
 
-- `carla_client.py`: Handles simulator connection and data acquisition  
-- `logger.py`: Handles energy data persistence and tracking  
+- twin_service.py (planned orchestration layer)
 
-#### Responsibilities
+At the current stage, orchestration is still handled inside main.py.
 
-- Communication with external simulator  
-- Data acquisition from CARLA  
-- Logging and observability  
-- Side effects and I/O operations  
+The twin_service module is reserved for:
+
+- Future integration with BaSyx (AAS)
+- Digital Twin state synchronization
+- Event publishing
+- Data streaming
+- Decoupling execution loop from entrypoint
+
+This allows progressive evolution toward a full AAS-compliant Digital Twin architecture.
+
+---
+
+## 3. Infrastructure Layer
+
+Contains all external dependencies and side effects.
+
+### Components
+
+- carla_client.py  
+  Handles connection to CARLA, synchronous tick management and longitudinal data extraction.
+
+- logger.py  
+  Handles structured logging and observability.
+
+### Responsibilities
+
+- Communication with CARLA simulator
+- Data acquisition (velocity, acceleration, dt)
+- Execution of control commands
+- Logging and monitoring
+- External side effects
 
 Infrastructure must not contain domain logic.
 
 ---
 
-## Execution Flow
+# Execution Flow (Current Implementation)
 
-```text
 CARLA (Infrastructure)
         ↓
-TwinService (Application)
+main.py (Temporary Orchestration)
         ↓
-VehicleEnergySystem / EnergyModel (Domain)
+VehicleEnergySystem (Domain Coordination)
+        ↓
+EnergyModel + Battery (Domain Core)
         ↓
 Logger (Infrastructure)
-```
 
 ---
 
-## Dependency Rule
+# Execution Flow (Planned Architecture)
 
-The dependency direction follows:
+CARLA (Infrastructure)
+        ↓
+TwinService (Application Layer)
+        ↓
+VehicleEnergySystem (Domain Coordination)
+        ↓
+EnergyModel + Battery (Domain Core)
+        ↓
+AAS / BaSyx Integration
 
-```
+---
+
+# Dependency Rule
+
+The dependency direction follows Clean Architecture principles.
+
+Logical dependency:
+
 Infrastructure → Application → Domain
-```
 
-At the code level, dependency must always point inward:
+Code-level dependency must always point inward:
 
-```
 Domain ← Application ← Infrastructure
-```
 
-The Domain layer must remain independent of outer layers.
+The Domain Layer must remain independent from outer layers.
 
 ---
 
-## Architectural Rationale
+# Energy Model Description
+
+The Digital Twin currently considers simplified longitudinal dynamics in a horizontal plane.
+
+Inclination effects are intentionally ignored at this stage.
+
+## Longitudinal Forces
+
+Rolling resistance:
+
+F_roll = C_r * m * g
+
+Aerodynamic drag:
+
+F_aero = 0.5 * rho * C_d * A * v^2
+
+Total longitudinal force:
+
+F_long = m * a + F_roll + F_aero
+
+Where:
+
+- m = vehicle mass [kg]
+- a = longitudinal acceleration [m/s²]
+- C_r = rolling resistance coefficient
+- g = gravitational acceleration [m/s²]
+- rho = air density [kg/m³]
+- C_d = aerodynamic drag coefficient
+- A = frontal area [m²]
+- v = longitudinal velocity [m/s]
+
+Mechanical power:
+
+P = F_long * v
+
+Discrete energy integration:
+
+E_k = E_{k-1} + P_k * dt
+
+---
+
+# Vehicle Energy System
+
+The VehicleEnergySystem coordinates:
+
+- Mechanical power computation
+- Step mechanical energy calculation
+- Battery discharge when power > 0
+- Battery regeneration when power < 0
+- SoC updates
+
+Energy and battery logic are intentionally decoupled.
+
+---
+
+# Architectural Rationale
 
 Clean Architecture was adopted to:
 
-- Ensure domain independence from CARLA  
-- Enable offline validation of the energy model  
-- Support future extensibility  
-- Maintain separation between computation and simulation  
-- Allow evolution toward more advanced Digital Twin and CPS-oriented implementations  
-- Support battery-aware energy modeling beyond pure longitudinal mechanics  
+- Ensure domain independence from CARLA
+- Enable offline validation of the energy model
+- Support battery-aware modeling
+- Allow future integration with AAS (BaSyx)
+- Maintain separation between computation and simulation
+- Prepare the system for CPS-oriented Digital Twin evolution
+
+---
+
+# Current Maturity Level
+
+The system currently supports:
+
+- Longitudinal mechanical energy estimation
+- Battery discharge and regeneration modeling
+- Real-time integration with CARLA
+- Structured layered architecture
+
+Future work includes:
+
+- Integration with Asset Administration Shell (AAS)
+- TwinService implementation
+- Real-time HUD visualization
+- Data persistence and streaming
+- Extension toward full Digital Twin CPS architecture

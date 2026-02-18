@@ -6,111 +6,150 @@ Define a simplified longitudinal vehicle model for real-time energy estimation w
 
 The model estimates:
 
-- Instantaneous mechanical power
-- Accumulated mechanical energy
-- Battery state-of-charge variation (SoC)
-- Electrical energy consumed or recovered
+- Instantaneous mechanical power  
+- Accumulated mechanical energy  
+- Battery state-of-charge variation (SoC)  
+- Electrical energy consumed or recovered  
+
+This model is implemented inside the Domain Layer and remains independent from CARLA and infrastructure concerns.
 
 ---
 
-## 2. Modeling Assumptions
+# 2. Modeling Assumptions
 
-- One-dimensional longitudinal motion
-- Flat road (no slope)
-- Constant vehicle parameters
-- Simplified drivetrain representation
-- Regenerative braking modeled in simplified form
-- No thermal effects
+The following assumptions are adopted to maintain mathematical tractability and real-time capability:
 
----
+- One-dimensional longitudinal motion  
+- Flat road (no slope)  
+- Constant vehicle parameters  
+- Simplified drivetrain representation  
+- Regenerative braking modeled in simplified form  
+- No thermal effects  
+- No lateral or vertical dynamics  
 
-## 3. Variables
-
-### Time-dependent variables
-
-- v(t): longitudinal velocity [m/s]
-- a(t): longitudinal acceleration [m/s²]
-- P(t): instantaneous mechanical power [W]
-- E_mech(t): accumulated mechanical energy [J]
-- E_elec(t): electrical energy exchanged with battery [J]
-- SoC(t): battery state of charge [-]
+These assumptions are intentional and define the current maturity level of the Digital Twin.
 
 ---
 
-## 4. Parameters
+# 3. Time-Dependent Variables
 
-- m: vehicle mass [kg]
-- ρ: air density [kg/m³]
-- Cd: aerodynamic drag coefficient [-]
-- A: frontal area [m²]
-- Cr: rolling resistance coefficient [-]
-- g: gravitational acceleration (9.81 m/s²)
-- η_drive: drivetrain efficiency (simplified)
-- η_regen: regenerative efficiency (simplified)
-- E_batt: nominal battery energy capacity [J]
+The system evolves in discrete time.
+
+- v(t): longitudinal velocity [m/s]  
+- a(t): longitudinal acceleration [m/s²]  
+- P(t): instantaneous mechanical power [W]  
+- E_mech(t): accumulated mechanical energy [J]  
+- E_elec(t): electrical energy exchanged with battery [J]  
+- SoC(t): battery state of charge [-]  
+
+Discrete representation:
+
+- vₖ  
+- aₖ  
+- Pₖ  
+- E_mechₖ  
+- SoCₖ  
 
 ---
 
-## 5. Force Modeling
+# 4. Model Parameters
 
-### 5.1 Inertial Force
+Vehicle and environmental parameters:
+
+- m: vehicle mass [kg]  
+- ρ: air density [kg/m³]  
+- C_d: aerodynamic drag coefficient [-]  
+- A: frontal area [m²]  
+- C_r: rolling resistance coefficient [-]  
+- g: gravitational acceleration (9.81 m/s²)  
+
+Battery parameters:
+
+- η_drive: drivetrain discharge efficiency  
+- η_regen: regenerative efficiency  
+- E_batt: nominal battery energy capacity [J]  
+
+All parameters are treated as constant in the current model.
+
+---
+
+# 5. Longitudinal Force Modeling
+
+The total equivalent longitudinal force required to sustain the vehicle motion state is composed of:
+
+## 5.1 Inertial Force
 
 F_inertial = m · a(t)
 
-### 5.2 Aerodynamic Drag
+## 5.2 Aerodynamic Drag
 
-F_aero = 0.5 · ρ · Cd · A · v(t)²
+F_aero = 0.5 · ρ · C_d · A · v(t)²
 
-### 5.3 Rolling Resistance
+## 5.3 Rolling Resistance
 
-F_roll = Cr · m · g
-
----
-
-## 6. Total Equivalent Longitudinal Force
-
-F_total(t) = m·a(t) + 0.5·ρ·Cd·A·v(t)² + Cr·m·g
-
-This represents the equivalent mechanical force required to sustain the observed motion state.
+F_roll = C_r · m · g
 
 ---
 
-## 7. Power Model
+# 6. Total Longitudinal Force
+
+F_total(t) = m·a(t) + 0.5·ρ·C_d·A·v(t)² + C_r·m·g
+
+This represents the mechanical force equivalent required to reproduce the observed motion.
+
+---
+
+# 7. Mechanical Power Model
+
+Instantaneous mechanical power:
 
 P(t) = F_total(t) · v(t)
 
 Expanded form:
 
-P(t) = v(t) · [m·a(t) + 0.5·ρ·Cd·A·v(t)² + Cr·m·g]
+P(t) = v(t) · [m·a(t) + 0.5·ρ·C_d·A·v(t)² + C_r·m·g]
 
-When P(t) > 0 → traction power (battery discharge)  
-When P(t) < 0 → regenerative braking (battery charge)
+Interpretation:
+
+- If P(t) > 0 → traction power (battery discharge)  
+- If P(t) < 0 → regenerative braking (battery charge)  
 
 ---
 
-## 8. Energy Model
+# 8. Energy Model
 
-### 8.1 Continuous Form
+## 8.1 Continuous Form
 
 E_mech(t) = ∫ P(t) dt
 
 ---
 
-### 8.2 Discrete Computational Form
+## 8.2 Discrete Computational Form
 
-For numerical implementation:
+For real-time numerical implementation:
 
 E_mechₖ₊₁ = E_mechₖ + Pₖ · Δt
 
-Electrical energy exchanged with battery:
+Where:
 
-If Pₖ > 0:
+- Δt is the sampling interval  
+- k is the discrete time index  
 
-E_elec = Pₖ / η_drive
+Mechanical energy is accumulated only when Pₖ > 0 in the current implementation.
 
-If Pₖ < 0:
+---
 
-E_elec = Pₖ · η_regen
+# 9. Battery Energy Exchange Model
+
+The electrical energy exchange depends on the sign of mechanical power.
+
+If Pₖ > 0 (traction):
+
+E_elec = (Pₖ · Δt) / η_drive
+
+If Pₖ < 0 (regeneration):
+
+E_elec = |Pₖ · Δt| · η_regen
 
 Battery state-of-charge update:
 
@@ -118,49 +157,65 @@ SoCₖ₊₁ = SoCₖ − (E_elec / E_batt)
 
 Where:
 
-- Δt: sampling interval
-- k: discrete time index
+- E_batt is total battery capacity in Joules  
+- SoC ∈ [0, 1]  
+
+This battery logic is implemented separately in the Battery class and coordinated by VehicleEnergySystem.
 
 ---
 
-## 9. CARLA Integration Inputs
+# 10. CARLA Integration Inputs
 
-The model requires:
+The model requires the following inputs from the simulator:
 
-- Longitudinal velocity v
-- Longitudinal acceleration a
-- Time step Δt
+- Longitudinal velocity v  
+- Longitudinal acceleration a  
+- Time step Δt  
 
 If acceleration is not directly available:
 
 aₖ = (vₖ − vₖ₋₁) / Δt
 
+The model does not depend on CARLA and can be validated offline using synthetic velocity profiles.
+
 ---
 
-## 10. Conceptual Class Structure
+# 11. Conceptual Class Structure
 
-The system is structured into:
+The implementation follows domain separation.
 
 EnergyModel:
-- Computes forces and mechanical power
-- Integrates mechanical energy
+- Computes longitudinal forces  
+- Computes mechanical power  
+- Integrates mechanical energy  
 
 Battery:
-- Manages SoC dynamics
-- Applies simplified discharge and regeneration logic
+- Manages SoC dynamics  
+- Applies discharge and regenerative efficiency  
 
 VehicleEnergySystem:
-- Coordinates EnergyModel and Battery
-- Provides unified update(v, a, dt)
-- Returns mechanical power, accumulated energy, and SoC
+- Coordinates EnergyModel and Battery  
+- Provides unified update(v, a, dt)  
+- Returns mechanical power, accumulated energy, SoC and electrical exchange  
+
+All logic resides inside the Domain Layer.
 
 ---
 
-## 11. Model Limitations
+# 12. Model Limitations
 
-- No road grade modeling
-- Simplified drivetrain efficiency
-- Simplified regenerative efficiency
-- No thermal effects
-- No lateral dynamics
-- No detailed electrochemical battery model
+The current implementation does not include:
+
+- Road grade modeling  
+- Variable drivetrain efficiency  
+- Thermal effects  
+- Lateral or vertical dynamics  
+- Electrochemical battery modeling  
+- Motor torque limits  
+- Power electronics modeling  
+
+The model is intentionally simplified to prioritize:
+
+- Real-time computation  
+- Clean architecture separation  
+- Progressive evolution toward a CPS-oriented Digital Twin
