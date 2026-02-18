@@ -2,6 +2,8 @@ from src.domain.energy_model import EnergyModel
 from src.domain.battery import Battery
 from src.domain.vehicle_energy_system import VehicleEnergySystem
 from src.domain.dtos import UpdateRequestDto
+from infra.carla_client import CarlaClient
+
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -12,9 +14,6 @@ def main():
 
     :return: None
     """
-    battery = Battery(capacity=50_000_000, soc_init=1.0)
-    battery.discharge(mech_energy=10_000)
-    battery.regen(mech_energy=5_000)
 
     energy_model = EnergyModel(
         mass=1500,
@@ -32,22 +31,29 @@ def main():
 
     vehicle_system = VehicleEnergySystem(energy_model, battery)
 
-    logger.info("[Estado inicial SoC]:", soc_init=battery.soc)
+    carla_client = CarlaClient()
+    carla_client.connect()
+    carla_client.spawn_vehicle()
+    logger.info("[CARLA CLIENT INITIALIZED]")
+    try:
+        while True:
+            carla_client.apply_control(throttle=0.5)
+            state = carla_client.tick()
 
-    electrical_used = battery.discharge(mech_energy=10_000)
+            if state is None:
+                logger.warning("No state received from CARLA. Skipping update.")
+                continue
 
-    logger.info("[Eletricidade usada]:", electri_used=electrical_used)
-    logger.info("[SoC após descarga]:", soc_discharge=battery.soc)
+            req = state
+            resp = vehicle_system.update(req)
+            logger.info("[VEHICLE STATE]", velocity=state['velocity'], acceleration=state['acceleration'], dt=state['dt'])
+            logger.info("[ENERGY SYSTEM]", power=resp.power, mech_energy_total=resp.mech_energy_total, soc=resp.soc)
 
-    electrical_recovered = battery.regen(mech_energy=5_000)
+    except KeyboardInterrupt:
+        logger.warning("Exiting...")
 
-    logger.info("[Eletricidade recuperada]:", electri_recovered=electrical_recovered)
-    logger.info("[SoC após regeneração]:", soc_regen=battery.soc)
-
-    req = UpdateRequestDto(velocity=10.0, acceleration=1.0, dt=0.1)
-    resp = vehicle_system.update(req)
-
-    logger.info(resp)
+    finally:
+        carla_client.destroy()
 
 if __name__ == "__main__":
     main()
