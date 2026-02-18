@@ -1,7 +1,6 @@
 from src.domain.energy_model import EnergyModel
 from src.domain.battery import Battery
 from src.domain.vehicle_energy_system import VehicleEnergySystem
-from src.domain.dtos import UpdateRequestDto
 from infra.carla_client import CarlaClient
 
 import structlog
