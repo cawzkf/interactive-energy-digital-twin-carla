@@ -14,4 +14,22 @@ COLOR_BG          = (20,  20,  20,  160)   # fundo semitransparente (RGBA)
 
 
 class EnergyHUD:
-    pass
+   def __init__(
+        self,
+        display: pygame.Surface,
+        font_size: int = 18,
+        pos: tuple[int, int] = (10, 10),
+        panel_width: int = 320,
+    ) -> None:
+        self.display      = display
+        self.pos          = pos
+        self.panel_width  = panel_width
+
+        pygame.font.init()
+        try:
+            self.font = pygame.font.SysFont("monospace", font_size, bold=False)
+        except Exception:
+            self.font = pygame.font.Font(None, font_size)
+
+        self.line_height  = self.font.get_linesize() + 4   
+        self._last_response: UpdateResponseDto | None = None
