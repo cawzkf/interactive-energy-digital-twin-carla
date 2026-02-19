@@ -48,3 +48,71 @@ class EnergyHUD:
         lines = self._build_lines()
         self._draw_panel(lines)
     
+    def _build_lines(self) -> list[tuple[str, tuple[int, int, int]]]:
+        """
+        Monta a lista de (texto, cor) que será renderizada no painel.
+
+        Retorna
+        -------
+        list[tuple[str, tuple]]
+            Cada item é um par (string, cor RGB).
+        """
+        if self._last_response is None:
+            return [("  Aguardando dados...", COLOR_WHITE)]
+
+        r = self._last_response
+
+        # ── Velocidade (não vem no DTO, mas pode ser inferida / exibida
+        #    pelo CarlaClient antes de criar o DTO; aqui exibimos o que temos)
+
+        # ── Potência
+        power_w   = r.power
+        power_kw  = power_w / 1_000.0
+        if power_w > 0:
+            power_label = f"  Potência:       {power_kw:+.2f} kW  [DESCARGA]"
+            power_color = COLOR_GREEN
+        elif power_w < 0:
+            power_label = f"  Potência:       {power_kw:+.2f} kW  [REGEN]"
+            power_color = COLOR_CYAN
+        else:
+            power_label = f"  Potência:        0.00 kW"
+            power_color = COLOR_WHITE
+
+        # ── Energia mecânica acumulada
+        energy_j   = r.mech_energy_total
+        energy_kwh = energy_j / 3_600_000.0
+        energy_label = (
+            f"  Energia mec.:  {energy_j:,.0f} J"
+            f"  ({energy_kwh:.4f} kWh)"
+        )
+
+        # ── Energia elétrica do passo atual
+        elec_j     = r.electrical_used_or_recovered
+        elec_kwh   = elec_j / 3_600_000.0
+        if power_w > 0:
+            elec_label = f"  Elétrica usada: {elec_j:,.1f} J  ({elec_kwh:.6f} kWh)"
+            elec_color = COLOR_GREEN
+        else:
+            elec_label = f"  Elétrica recup: {elec_j:,.1f} J  ({elec_kwh:.6f} kWh)"
+            elec_color = COLOR_CYAN
+
+        # ── SoC com barra visual
+        soc_pct = r.soc * 100.0
+        bar     = self._soc_bar(r.soc, width=16)
+        soc_label = f"  SoC:  {bar} {soc_pct:5.1f} %"
+        if soc_pct < 5:
+            soc_color = COLOR_RED
+        elif soc_pct < 20:
+            soc_color = COLOR_ORANGE
+        else:
+            soc_color = COLOR_WHITE
+
+        return [
+            ("─── Digital Twin — Energia ───", COLOR_YELLOW),
+            (power_label,                       power_color ),
+            (energy_label,                      COLOR_WHITE ),
+            (elec_label,                        elec_color  ),
+            ("",                                COLOR_WHITE ),   # separador
+            (soc_label,                         soc_color   ),
+            ("──────────────────────────────",  COLOR_YELLOW),
+        ]
