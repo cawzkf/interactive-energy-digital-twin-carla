@@ -37,4 +37,4 @@ class EnergyHUD:
     def update(self, response: UpdateResponseDto) -> None:
         self._last_response = response
             
-        
+    
