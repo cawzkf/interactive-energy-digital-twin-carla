@@ -36,5 +36,15 @@ class EnergyHUD:
     
     def update(self, response: UpdateResponseDto) -> None:
         self._last_response = response
-            
+        
+    def render(self) -> None:
+        """
+        Desenha o painel de HUD na superfície pygame.
+
+        Deve ser chamado após update() e antes de pygame.display.flip().
+        Não levanta exceção se nenhum dado foi recebido ainda — apenas
+        exibe "Aguardando dados..." até o primeiro tick completo.
+        """
+        lines = self._build_lines()
+        self._draw_panel(lines)
     
