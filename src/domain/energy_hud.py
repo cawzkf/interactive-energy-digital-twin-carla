@@ -116,3 +116,26 @@ class EnergyHUD:
             (soc_label,                         soc_color   ),
             ("──────────────────────────────",  COLOR_YELLOW),
         ]
+
+    
+    @staticmethod
+    def _soc_bar(soc: float, width: int = 16) -> str:
+        """
+        Gera uma barra de progresso ASCII proporcional ao SoC.
+
+        Parâmetros
+        ----------
+        soc : float
+            Estado de carga normalizado (0.0 a 1.0).
+        width : int
+            Número total de caracteres da barra.
+
+        Retorna
+        -------
+        str
+            String do tipo '[████░░░░░░]'.
+        """
+        filled = int(round(soc * width))
+        filled = max(0, min(filled, width))
+        bar    = "█" * filled + "░" * (width - filled)
+        return f"[{bar}]"
