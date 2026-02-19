@@ -11,3 +11,7 @@ COLOR_CYAN        = (0,   220, 220)   # valores de regeneração
 COLOR_ORANGE      = (255, 140, 0  )   # SoC baixo (< 20 %)
 COLOR_RED         = (220, 50,  50 )   # SoC crítico (< 5 %)
 COLOR_BG          = (20,  20,  20,  160)   # fundo semitransparente (RGBA)
+
+
+class EnergyHUD:
+    pass
