@@ -1,6 +1,6 @@
 from carla import Client, VehicleControl
 
-from src.domain.dtos import UpdateRequestDto
+from src.domain.dtos import UpdateResponseDto, UpdateRequestDto
 
 
 class CarlaClient:
@@ -12,9 +12,9 @@ class CarlaClient:
     - Returning longitudinal vehicle states
     """
 
-    def __init__(self, host: str = "localhost", port: int = 2000) -> None:
+    def __init__(self, host: str = "10.255.255.254", port: int = 2000) -> None:
         self.client = Client(host, port)
-        self.client.set_timeout(10.0)
+        self.client.set_timeout(50.0)
 
         self.world = None
         self.map = None
@@ -74,7 +74,7 @@ class CarlaClient:
         )
         self.vehicle.apply_control(control)
 
-    def tick(self) -> UpdateResponseDto:
+    def tick(self) -> UpdateRequestDto:
         """
         Simulation one step and return longitudinal state.
 
