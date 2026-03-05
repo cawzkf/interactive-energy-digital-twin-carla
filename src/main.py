@@ -1,19 +1,15 @@
 from src.domain.energy_model import EnergyModel
 from src.domain.battery import Battery
 from src.domain.vehicle_energy_system import VehicleEnergySystem
-from infra.carla_client import CarlaClient
+from src.application.twin_service import TwinService
+from src.infra.carla_client import CarlaClient
+from src.infra.logger import setup_logging, get_logger
 
-import structlog
+setup_logging()
+logger = get_logger(__name__)
 
-logger = structlog.get_logger(__name__)
 
 def main():
-    """
-    Main function to demonstrate the usage of the VehicleEnergySystem, EnergyModel, and Battery classes.
-
-    :return: None
-    """
-
     energy_model = EnergyModel(
         mass=1500,
         drag_coefficient=0.3,
@@ -30,29 +26,46 @@ def main():
 
     vehicle_system = VehicleEnergySystem(energy_model, battery)
 
+    twin_service = TwinService()
+    basyx_available = twin_service.check_connection()
+
     carla_client = CarlaClient()
     carla_client.connect()
     carla_client.spawn_vehicle()
-    logger.info("[CARLA CLIENT INITIALIZED]")
+    logger.info("carla_client_initialized")
+
     try:
         while True:
             carla_client.apply_control(throttle=0.5)
             state = carla_client.tick()
 
             if state is None:
-                logger.warning("No state received from CARLA. Skipping update.")
+                logger.warning("no_state_received")
                 continue
 
-            req = state
-            resp = vehicle_system.update(req)
-            logger.info("[VEHICLE STATE]", velocity=state['velocity'], acceleration=state['acceleration'], dt=state['dt'])
-            logger.info("[ENERGY SYSTEM]", power=resp.power, mech_energy_total=resp.mech_energy_total, soc=resp.soc)
+            resp = vehicle_system.update(state)
+            logger.info(
+                "vehicle_update",
+                velocity=round(state.velocity, 3),
+                acceleration=round(state.acceleration, 3),
+                power=round(resp.power, 2),
+                soc=round(resp.soc, 4),
+                energy=round(resp.mech_energy_total, 2),
+                distance=round(resp.distance_total, 2),
+                avg_power=round(resp.avg_power, 2),
+                consumption_wh_m=round(resp.specific_consumption, 6),
+                autonomy_s=round(resp.estimated_autonomy, 1),
+            )
+
+            if basyx_available:
+                twin_service.sync(state, resp)
 
     except KeyboardInterrupt:
-        logger.warning("Exiting...")
+        logger.warning("exiting")
 
     finally:
         carla_client.destroy()
+
 
 if __name__ == "__main__":
     main()

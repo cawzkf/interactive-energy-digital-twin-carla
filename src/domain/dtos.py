@@ -30,3 +30,7 @@ class UpdateResponseDto(BaseModel):
     mech_energy_total: float
     soc: float
     electrical_used_or_recovered: float
+    distance_total: float
+    avg_power: float
+    specific_consumption: float
+    estimated_autonomy: float
