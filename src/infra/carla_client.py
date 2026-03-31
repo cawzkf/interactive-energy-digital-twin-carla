@@ -12,9 +12,9 @@ class CarlaClient:
     - Returning longitudinal vehicle states
     """
 
-    def __init__(self, host: str = "10.255.255.254", port: int = 2000) -> None:
+    def __init__(self, host: str = "127.0.0.1", port: int = 2000) -> None:
         self.client = Client(host, port)
-        self.client.set_timeout(50.0)
+        self.client.set_timeout(100.0)
 
         self.world = None
         self.map = None
@@ -88,7 +88,8 @@ class CarlaClient:
         if self.world is None or self.vehicle is None:
             raise RuntimeError("Client not fully initialized.")
 
-        snapshot = self.world.tick()
+        self.world.tick()
+        snapshot = self.world.get_snapshot()
         dt = snapshot.timestamp.delta_seconds
 
         vel_vec = self.vehicle.get_velocity()
