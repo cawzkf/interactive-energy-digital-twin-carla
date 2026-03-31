@@ -40,3 +40,43 @@ app = FastAPI(
     version="1.0.0",
 )
 
+
+@app.get("/energy/state")
+def get_energy_state() -> JSONResponse:
+    """
+    Retorna o último estado energético calculado pelo VehicleEnergySystem.
+
+    Campos retornados:
+    - power               : Potência mecânica instantânea (W)
+    - mech_energy_total   : Energia mecânica acumulada (J)
+    - soc                 : State of Charge da bateria (0.0 a 1.0)
+    - distance_total      : Distância percorrida acumulada (m)
+    - avg_power           : Média de potência das últimas N amostras (W)
+    - specific_consumption: Consumo específico (Wh/m)
+    - estimated_autonomy  : Autonomia estimada com base no SoC e avg_power (s)
+
+    Retorna 503 enquanto o main.py ainda não enviou o primeiro tick.
+    """
+    with _state_lock:
+        current = _energy_state
+
+    if current is None:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Aguardando primeiro tick do CARLA..."},
+        )
+
+    return JSONResponse(
+        status_code=200,
+        content={
+            "power": current.power,
+            "mech_energy_total": current.mech_energy_total,
+            "soc": current.soc,
+            "distance_total": current.distance_total,
+            "avg_power": current.avg_power,
+            "specific_consumption": current.specific_consumption,
+            "estimated_autonomy": current.estimated_autonomy,
+        },
+    )
+
+
