@@ -106,3 +106,18 @@ def set_queue(q: queue.Queue) -> None:
     logger.info("energy_queue_injected")
 
 
+
+def _start_consumer_thread() -> None:
+    """
+    Starts a daemon thread that consumes UpdateResponseDto objects from the queue
+    and updates the shared energy state in a thread-safe manner.
+    """
+    thread = threading.Thread(
+        target=_consume_queue,
+        name="energy-queue-consumer",
+        daemon=True,  # encerra junto com o processo principal
+    )
+    thread.start()
+    logger.info("energy_consumer_thread_started")
+
+
