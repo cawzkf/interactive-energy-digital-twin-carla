@@ -80,3 +80,29 @@ def get_energy_state() -> JSONResponse:
     )
 
 
+@app.get("/health")
+def health() -> JSONResponse:
+    """
+    Health check — o manual_control_energy.py pode usar esta rota para
+    aguardar o serviço estar disponível antes de iniciar o HUD.
+    """
+    return JSONResponse(status_code=200, content={"status": "ok"})
+
+
+
+
+def set_queue(q: queue.Queue) -> None:
+    """
+    Injects the shared queue produced by main.py.
+
+    Must be called once before uvicorn.run(), so that the consumer thread
+    is already running when the first ticks arrive.
+
+    :param q: queue.Queue(maxsize=1) instance created in main.py
+    """
+    global _energy_queue
+    _energy_queue = q
+    _start_consumer_thread()
+    logger.info("energy_queue_injected")
+
+
