@@ -26,3 +26,17 @@ logger = get_logger(__name__)
 _energy_state: UpdateResponseDto | None = None
 _state_lock = threading.Lock()
 _energy_queue: queue.Queue | None = None
+
+# ---------------------------------------------------------------------------
+#  FastAPI
+# ---------------------------------------------------------------------------
+
+app = FastAPI(
+    title="Energy Digital Twin Service",
+    description=(
+        "Expõe em tempo real os dados energéticos calculados pelo "
+        "VehicleEnergySystem integrado ao CARLA."
+    ),
+    version="1.0.0",
+)
+
