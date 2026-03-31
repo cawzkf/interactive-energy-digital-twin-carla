@@ -121,3 +121,29 @@ def _start_consumer_thread() -> None:
     logger.info("energy_consumer_thread_started")
 
 
+def _consume_queue() -> None:
+    """
+    Consumer thread loop.
+
+    Blocks on _energy_queue.get() until main.py pushes a new state.
+    Once received, acquires the lock and updates the shared energy state.
+
+    The lock ensures that the GET /energy/state endpoint never reads
+    a partially updated state.
+    """
+    global _energy_state
+
+    while True:
+        try:
+            resp: UpdateResponseDto = _energy_queue.get()
+
+            with _state_lock:
+                _energy_state = resp
+
+            logger.debug(
+
+                soc=round(resp.soc, 4),
+            )
+
+        except Exception as exc:
+            logger.error("consumer_thread_error", error=str(exc))
