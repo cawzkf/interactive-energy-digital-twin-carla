@@ -2,13 +2,12 @@
 Synthetic simulation — runs the full energy pipeline without CARLA or BaSyx.
 Simulates a vehicle accelerating, cruising, and braking.
 """
-import math
 
-from src.domain.energy_model import EnergyModel
 from src.domain.battery import Battery
-from src.domain.vehicle_energy_system import VehicleEnergySystem
 from src.domain.dtos import UpdateRequestDto
-from src.infra.logger import setup_logging, get_logger
+from src.domain.energy_model import EnergyModel
+from src.domain.vehicle_energy_system import VehicleEnergySystem
+from src.infra.logger import get_logger, setup_logging
 
 setup_logging()
 logger = get_logger(__name__)
