@@ -1,10 +1,12 @@
 from collections import deque
 
-from src.domain.energy_model import EnergyModel
 from src.domain.battery import Battery
-from src.domain.dtos import UpdateResponseDto, UpdateRequestDto
+from src.domain.dtos import UpdateRequestDto, UpdateResponseDto
+from src.domain.energy_model import EnergyModel
 
 POWER_HISTORY_SIZE = 50
+AVG_POWER_FLOOR = 5.0
+MAX_AUTONOMY_S = 1_000_000.0
 
 
 class VehicleEnergySystem:
@@ -40,9 +42,9 @@ class VehicleEnergySystem:
         else:
             specific_consumption = 0.0
 
-        if avg_power > 0:
+        if avg_power > AVG_POWER_FLOOR:
             remaining_energy = self.battery.soc * self.battery.capacity
-            estimated_autonomy = remaining_energy / avg_power
+            estimated_autonomy = min(remaining_energy / avg_power, MAX_AUTONOMY_S)
         else:
             estimated_autonomy = 0.0
 
