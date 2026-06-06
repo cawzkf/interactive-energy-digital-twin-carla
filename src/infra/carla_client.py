@@ -1,6 +1,9 @@
-from carla import Client, VehicleControl
+from carla import Client, Location, Rotation, Transform, VehicleControl
+from src.domain.dtos import UpdateRequestDto
+from src.infra.config import AcquisitionConfig
 
-from src.domain.dtos import UpdateResponseDto, UpdateRequestDto
+MAX_LONG_ACCEL = 3.0
+ACCEL_EMA_ALPHA = 0.15
 
 
 class CarlaClient:
@@ -12,13 +15,20 @@ class CarlaClient:
     - Returning longitudinal vehicle states
     """
 
-    def __init__(self, host: str = "10.255.255.254", port: int = 2000) -> None:
+    def __init__(self, host: str | None = None, port: int | None = None) -> None:
+        host = host or AcquisitionConfig.CARLA_HOST
+        port = port or AcquisitionConfig.CARLA_PORT
         self.client = Client(host, port)
         self.client.set_timeout(50.0)
 
         self.world = None
         self.map = None
         self.vehicle = None
+        self.spectator = None
+        self.traffic_manager = None
+        self._prev_velocity = 0.0
+        self._accel_ema = 0.0
+        self._autopilot_on = False
 
     def connect(self, fixed_dt: float = 0.1) -> None:
         """
@@ -33,6 +43,20 @@ class CarlaClient:
         settings.fixed_delta_seconds = fixed_dt
 
         self.world.apply_settings(settings)
+
+        self.traffic_manager = self.client.get_trafficmanager()
+        self.traffic_manager.set_synchronous_mode(True)
+        self.spectator = self.world.get_spectator()
+
+    def _update_spectator(self) -> None:
+        """Chase camera: position the spectator behind and above the vehicle."""
+        if self.vehicle is None or self.spectator is None:
+            return
+        tf = self.vehicle.get_transform()
+        fwd = tf.get_forward_vector()
+        loc = tf.location
+        cam = Location(x=loc.x - 6.0 * fwd.x, y=loc.y - 6.0 * fwd.y, z=loc.z + 3.0)
+        self.spectator.set_transform(Transform(cam, Rotation(pitch=-15.0, yaw=tf.rotation.yaw)))
 
     def spawn_vehicle(self, blueprint_name: str = "vehicle.audi.tt") -> None:
         """
@@ -54,6 +78,25 @@ class CarlaClient:
             raise RuntimeError(f"Blueprint '{blueprint_name}' not found.")
 
         self.vehicle = self.world.spawn_actor(blueprint, spawn_points[0])
+        self.set_autopilot(True)
+
+    def set_autopilot(self, enabled: bool) -> None:
+        """Enable/disable Traffic Manager autopilot (no-op if unchanged)."""
+        if self.vehicle is None or self._autopilot_on == enabled:
+            return
+        self.vehicle.set_autopilot(enabled, self.traffic_manager.get_port())
+        self._autopilot_on = enabled
+
+    def apply_manual(
+        self, throttle: float, steer: float, brake: float, reverse: bool = False
+    ) -> None:
+        """Apply manual driving control (turns autopilot off)."""
+        if self.vehicle is None:
+            return
+        self.set_autopilot(False)
+        self.vehicle.apply_control(
+            VehicleControl(throttle=throttle, steer=steer, brake=brake, reverse=reverse)
+        )
 
     def apply_control(
         self,
@@ -88,29 +131,38 @@ class CarlaClient:
         if self.world is None or self.vehicle is None:
             raise RuntimeError("Client not fully initialized.")
 
-        snapshot = self.world.tick()
+        self.world.tick()
+        snapshot = self.world.get_snapshot()
         dt = snapshot.timestamp.delta_seconds
 
+        self._update_spectator()
+
         vel_vec = self.vehicle.get_velocity()
-        acc_vec = self.vehicle.get_acceleration()
-        forward = self.vehicle.get_transform().get_forward_vector()
+        transform = self.vehicle.get_transform()
+        forward = transform.get_forward_vector()
+        location = transform.location
 
         velocity = (
             vel_vec.x * forward.x +
             vel_vec.y * forward.y +
             vel_vec.z * forward.z
         )
+        if abs(velocity) < 0.05:
+            velocity = 0.0
 
-        acceleration = (
-            acc_vec.x * forward.x +
-            acc_vec.y * forward.y +
-            acc_vec.z * forward.z
+        raw_accel = (velocity - self._prev_velocity) / dt if dt > 0 else 0.0
+        self._prev_velocity = velocity
+        self._accel_ema = (
+            ACCEL_EMA_ALPHA * raw_accel + (1 - ACCEL_EMA_ALPHA) * self._accel_ema
         )
+        acceleration = max(-MAX_LONG_ACCEL, min(MAX_LONG_ACCEL, self._accel_ema))
 
         return UpdateRequestDto(
             velocity=velocity,
             acceleration=acceleration,
             dt=dt,
+            x=location.x,
+            y=location.y,
         )
 
     def destroy(self) -> None:
