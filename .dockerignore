@@ -1,0 +1,22 @@
+# Keep the build context tiny and fast — never ship these into image builds.
+.git
+.gitignore
+.venv
+**/__pycache__/
+*.pyc
+.pytest_cache
+.run
+
+# Frontend build artifacts / deps (rebuilt inside the image)
+frontend/node_modules
+frontend/dist
+
+# Heavy, unrelated assets and the digital-twin deploy (200MB+ .aasx, etc.)
+basyx-setup
+docs
+*.aasx
+
+# Secrets: never bake staging/prod credentials into an image
+config/.env.staging
+config/.env.prod
+config/.env.local

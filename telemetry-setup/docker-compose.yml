@@ -1,0 +1,21 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:2.14.2-pg16
+    container_name: telemetry-timescaledb
+    environment:
+      POSTGRES_USER: ${DB_USER:-marchforce}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-marchforce}
+      POSTGRES_DB: ${DB_NAME:-telemetry}
+    ports:
+      - '5432:5432'
+    volumes:
+      - telemetry-pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-marchforce} -d ${DB_NAME:-telemetry}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  telemetry-pgdata:

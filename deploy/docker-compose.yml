@@ -1,0 +1,112 @@
+name: marchforce-telemetry
+
+x-backend: &backend
+  image: marchforce-backend:local
+  env_file: ../config/.env.${APP_ENV:-dev}
+  environment: &backend-env
+    APP_ENV: ${APP_ENV:-dev}
+    MQTT_HOST: ${MQTT_HOST:-mosquitto}
+    DB_HOST: timescaledb
+  extra_hosts:
+    - 'host.docker.internal:host-gateway'
+  depends_on:
+    timescaledb:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0.15
+    container_name: mf-mosquitto
+    profiles: ['own-broker']
+    ports:
+      - '1883:1883'
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+  timescaledb:
+    image: timescale/timescaledb:2.14.2-pg16
+    container_name: mf-timescaledb
+    environment:
+      POSTGRES_USER: ${DB_USER:-marchforce}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-marchforce}
+      POSTGRES_DB: ${DB_NAME:-telemetry}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-marchforce} -d ${DB_NAME:-telemetry}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    <<: *backend
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+      target: runtime
+    container_name: mf-api
+    environment:
+      <<: *backend-env
+      PUBLIC_HOST: ${PUBLIC_HOST:-}
+    command: python -m uvicorn src.api.server:app --host 0.0.0.0 --port 8000
+    ports:
+      - '8000:8000'
+
+  processing:
+    <<: *backend
+    container_name: mf-processing
+    command: python -m src.processing_main
+
+  opcua:
+    <<: *backend
+    container_name: mf-opcua
+    command: python -m src.opcua_main
+    ports:
+      - '${OPCUA_PORT:-4840}:${OPCUA_PORT:-4840}'
+
+  acquisition:
+    <<: *backend
+    container_name: mf-acquisition
+    profiles: ['sim-acq']
+    environment:
+      <<: *backend-env
+      ACQ_SOURCE: sim
+    command: python -m src.acquisition_main
+
+  dashboard:
+    build:
+      context: ${FRONTEND_CONTEXT:-../frontend}
+      dockerfile: Dockerfile
+    image: ${FRONTEND_IMAGE:-marchforce-frontend:local}
+    container_name: mf-dashboard
+    ports:
+      - '8080:80'
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  twin-sync:
+    <<: *backend
+    container_name: mf-twin-sync
+    profiles: ['twin']
+    environment:
+      <<: *backend-env
+      BASYX_URL: ${BASYX_URL:-http://host.docker.internal:8081}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    command: python -m src.twin_main
+
+  lora:
+    <<: *backend
+    container_name: mf-lora
+    profiles: ['lora']
+    environment:
+      <<: *backend-env
+      LORA_LINK: ${LORA_LINK:-log}
+    command: python -m src.lora_main
+
+volumes:
+  pgdata:
