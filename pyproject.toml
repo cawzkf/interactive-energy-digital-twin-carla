@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "marchforce-telemetry"
-version = "0.2.0"
+version = "0.3.0"
 description = "MarchForce telemetry pipeline"
 authors = ["MarchForce"]
 package-mode = false
