@@ -1,8 +1,14 @@
 import base64
+import json
 
 import requests
 
-from src.domain.dtos import UpdateRequestDto, UpdateResponseDto
+from src.domain.aas_model import TELEMETRY_MODEL
+from src.domain.dtos import (
+    ProcessedTelemetryDto,
+    UpdateRequestDto,
+    UpdateResponseDto,
+)
 from src.infra.logger import get_logger
 
 logger = get_logger(__name__)
@@ -10,6 +16,7 @@ logger = get_logger(__name__)
 SUBMODEL_IDS = {
     "OperationalState": "https://example.com/ids/sm/2064_2231_2062_1810",
     "Battery": "https://example.com/ids/sm/8164_2231_2062_3248",
+    "EnergyEfficiency": "https://marchforce.org/sm/energyefficiency",
 }
 
 
@@ -32,12 +39,17 @@ class TwinService:
             f"{_encode_id(SUBMODEL_IDS['Battery'])}"
             f"/submodel-elements"
         )
+        self._efficiency_base = (
+            f"{self.basyx_url}/submodels/"
+            f"{_encode_id(SUBMODEL_IDS['EnergyEfficiency'])}"
+            f"/submodel-elements"
+        )
 
     def check_connection(self) -> bool:
         try:
             resp = self._session.get(
                 f"{self.basyx_url}/submodels/"
-                f"{_encode_id(SUBMODEL_IDS['OperationalState'])}"
+                f"{_encode_id(SUBMODEL_IDS['EnergyEfficiency'])}"
             )
             resp.raise_for_status()
             logger.info("basyx_connection_ok", url=self.basyx_url)
@@ -48,7 +60,7 @@ class TwinService:
 
     def _patch_value(self, base_url: str, id_short: str, value: str) -> None:
         url = f"{base_url}/{id_short}/$value"
-        self._session.patch(url, data=value)
+        self._session.patch(url, data=json.dumps(value))
 
     def sync(
         self,
@@ -91,3 +103,18 @@ class TwinService:
             )
         except requests.RequestException as e:
             logger.warning("basyx_sync_failed", error=str(e))
+
+    def sync_processed(self, p: ProcessedTelemetryDto) -> None:
+        """Update the EnergyEfficiency submodel KPIs from a processed sample.
+
+        Model-driven from the canonical telemetry model. The raw time series is
+        exposed via the IDTA TimeSeries LinkedSegment (TimescaleDB), not PATCHed
+        per sample.
+        """
+        try:
+            for id_short, field, scale in TELEMETRY_MODEL["EnergyEfficiency"]:
+                value = getattr(p, field) * scale
+                self._patch_value(self._efficiency_base, id_short, str(round(value, 4)))
+            logger.debug("aas_sync_ok", distance=p.distance, autonomy=p.autonomy)
+        except requests.RequestException as e:
+            logger.warning("aas_sync_failed", error=str(e))
