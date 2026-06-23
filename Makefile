@@ -7,7 +7,9 @@ DC      := APP_ENV=$(APP_ENV) bash scripts/deploy_docker.sh
 .DEFAULT_GOAL := help
 .PHONY: help venv install test smoke verify report \
         images deploy run down logs \
-        dev-up dev dev-back dev-front dev-stop clean
+        dev-up dev dev-back dev-front dev-stop clean \
+        twin-up twin-down dev-twin \
+        run-carla carla carla-down carla-download
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -47,14 +49,15 @@ run: images deploy ## Build (tests gate) then deploy the whole stack via images
 logs: ## Follow the deployed stack logs
 	$(DC) logs
 
-down: ## Stop the deployed Docker stack
+down: ## Stop the deployed Docker stack (+ telemetry infra)
 	$(DC) down
+	docker compose -f telemetry-setup/docker-compose.yml down
 
-dev-up: ## Dev infra only: TimescaleDB + reused BaSyx broker
+dev-up: ## Dev infra: TimescaleDB + full BaSyx twin (AAS + Mongo + MQTT)
 	docker compose -f telemetry-setup/docker-compose.yml up -d
-	docker compose -f basyx-setup/docker-compose.yml up -d mosquitto
+	docker compose -f basyx-setup/docker-compose.yml up -d
 
-dev: dev-up dev-back dev-front ## Dev run with hot reload (API --reload + Vite HMR)
+dev: dev-up dev-back dev-twin dev-front ## Dev run with hot reload (API --reload + Vite HMR)
 
 dev-back: ## Start backend (hot reload when APP_ENV=dev)
 	APP_ENV=$(APP_ENV) bash scripts/deploy.sh back
@@ -76,6 +79,11 @@ dev-twin: ## Run the twin-sync consumer as a process (dev)
 
 run-carla: ## ONE command: start CARLA + bring up the whole stack in CARLA mode
 	APP_ENV=$(APP_ENV) bash scripts/run_carla.sh
+
+carla-stop: ## Kill CarlaUE4 (and any Carla* child process) on the Windows host
+	powershell.exe -Command "Get-Process 'Carla*' -ErrorAction SilentlyContinue | Stop-Process -Force" || true
+
+carla-down: down carla-stop ## Stop CARLA mode: containers + acquisition + CARLA on Windows
 
 carla: ## Launch CARLA on the Windows host (see carla/README.md)
 	powershell.exe -ExecutionPolicy Bypass -File carla/start-carla.ps1 -Quality Low
