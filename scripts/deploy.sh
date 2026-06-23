@@ -83,7 +83,7 @@ deploy_twin() {
 }
 
 case "$TARGET" in
-  all)   deploy_back; deploy_front ;;
+  all)   deploy_back; deploy_twin; deploy_front ;;
   back)  deploy_back ;;
   front) deploy_front ;;
   twin)  deploy_twin ;;
