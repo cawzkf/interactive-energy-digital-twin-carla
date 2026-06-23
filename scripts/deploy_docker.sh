@@ -79,10 +79,12 @@ case "$cmd" in
     fi
     ;;
   down)
-    if [[ -f .run/acquisition.pid ]]; then
-      kill "$(cat .run/acquisition.pid)" 2>/dev/null || true
-      rm -f .run/acquisition.pid
-    fi
+    for pidfile in .run/acquisition.pid .run/acq-win.pid; do
+      if [[ -f "$pidfile" ]]; then
+        kill "$(cat "$pidfile")" 2>/dev/null || true
+        rm -f "$pidfile"
+      fi
+    done
     APP_ENV="$APP_ENV" $COMPOSE $PROFILES down
     if [[ "$WITH_TWIN" == "1" ]]; then $BASYX_COMPOSE down; fi
     ;;
