@@ -33,6 +33,7 @@ class MqttConfig:
     TOPIC_PROCESSED: str = os.getenv(
         "MQTT_TOPIC_PROCESSED", "marchforce/telemetry/processed"
     )
+    TOPIC_AAS: str = os.getenv("MQTT_TOPIC_AAS", "marchforce/aas")
     TOPIC_CONTROL: str = os.getenv("MQTT_TOPIC_CONTROL", "marchforce/control")
     TOPIC_CONFIG: str = os.getenv("MQTT_TOPIC_CONFIG", "marchforce/config")
     KEEPALIVE: int = int(os.getenv("MQTT_KEEPALIVE", "60"))
@@ -58,7 +59,7 @@ class DbConfig:
 class AcquisitionConfig:
     SOURCE: str = os.getenv("ACQ_SOURCE", SourceType.CARLA.value)
     NOMINAL_DC_VOLTAGE: float = float(os.getenv("NOMINAL_DC_VOLTAGE", "48.0"))
-    CARLA_HOST: str = os.getenv("CARLA_HOST", "10.255.255.254")
+    CARLA_HOST: str = os.getenv("CARLA_HOST", "172.28.0.1")
     CARLA_PORT: int = int(os.getenv("CARLA_PORT", "2000"))
 
 
