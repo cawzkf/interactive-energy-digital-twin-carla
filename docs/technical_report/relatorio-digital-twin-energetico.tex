@@ -64,7 +64,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\footnotesize\sffamily\color{mfGraphite}\textbf{\color{mfInk}MarchForce}~\textbullet~Digital Twin Energético}
-\fancyhead[R]{\footnotesize\sffamily\color{mfGraphite}Versão 5.0}
+\fancyhead[R]{\footnotesize\sffamily\color{mfGraphite}Versão 5.1}
 \fancyfoot[L]{\footnotesize\sffamily\color{mfGraphite}Estimativa Energética em Ambiente CARLA}
 \fancyfoot[R]{\footnotesize\sffamily\color{mfGraphite}\thepage}
 \renewcommand{\headrulewidth}{1.4pt}
@@ -74,7 +74,7 @@
 \fancypagestyle{plain}{%
   \fancyhf{}%
   \fancyhead[L]{\footnotesize\sffamily\color{mfGraphite}\textbf{\color{mfInk}MarchForce}~\textbullet~Digital Twin Energético}%
-  \fancyhead[R]{\footnotesize\sffamily\color{mfGraphite}Versão 5.0}%
+  \fancyhead[R]{\footnotesize\sffamily\color{mfGraphite}Versão 5.1}%
   \fancyfoot[R]{\footnotesize\sffamily\color{mfGraphite}\thepage}%
 }
 
@@ -235,7 +235,7 @@ O projeto encontra-se na seguinte fase:
 \item Barramento MQTT desacoplando aquisição, processamento e exposição
 \item Persistência temporal em PostgreSQL/TimescaleDB, organizada por sessão de teste
 \item API REST + WebSocket e dashboard web (React) com telemetria ao vivo, pista do trajeto e KPIs
-\item Integração com AAS via Eclipse BaSyx implementada (REST + MQTT eventing)
+\item Integração com AAS via Eclipse BaSyx implementada (REST PATCH + exposição plana via MQTT no tópico \code{marchforce/aas/\{Submodelo\}/\{idShort\}})
 \item Servidor OPC UA implementado (\code{asyncua}), parametrizado por ambiente, endpoint padrão \code{opc.tcp://<host>:4840/marchforce/}
 \item Enlace LoRa para telemetria resumida ao box (consumidor do barramento)
 \item Módulo de diagnóstico com códigos de erro e alertas operacionais (enums de severidade/código)
@@ -244,9 +244,13 @@ O projeto encontra-se na seguinte fase:
 \item Simulação sintética offline funcional
 \item Empacotamento em containers (Docker Compose) com imagens enxutas e testes como gate de build
 \item Estrutura arquitetural alinhada à RAMI 4.0
+\item Aquisição CARLA lançada automaticamente no Windows via PowerShell ao executar \texttt{make run-carla} (sem intervenção manual)
+\item Parada completa do modo CARLA com um único comando (\texttt{make carla-down}): derruba containers, encerra aquisição e mata o processo \texttt{CarlaUE4.exe}
+\item Dashboard com conversões de unidades: velocidade em km/h, energia em Wh, distância em km, consumo específico em Wh/km, autonomia em formato h:min
+\item \textit{Twin-sync} (BaSyx AAS) incluído em todos os fluxos de execução (\texttt{make dev}, \texttt{make run}, \texttt{make run-carla})
 \end{itemize}
 
-Toda a infraestrutura sobe com um único comando (\texttt{make run-carla}), que inicia o CARLA, o gêmeo digital (BaSyx) e o \textit{stack} de telemetria, expondo os \textit{endpoints} no IP real do host (Figura~\ref{fig:deploy}).
+Toda a infraestrutura sobe com um único comando (\texttt{make run-carla}), que inicia o CARLA, o gêmeo digital (BaSyx), o \textit{stack} de telemetria e a aquisição no Windows automaticamente, expondo os \textit{endpoints} no IP real do host (Figura~\ref{fig:deploy}). Para encerrar tudo — containers, aquisição e o processo \texttt{CarlaUE4.exe} — basta executar \texttt{make carla-down}.
 
 \begin{figure}[h]
 \centering
@@ -266,14 +270,15 @@ A operação do protótipo é padronizada por alvos de \code{make} (Tabela~\ref{
 \toprule
 \textbf{Comando} & \textbf{Descrição} \\
 \midrule
-\texttt{make run}       & Builda as imagens (testes como \textit{gate}) e sobe o \textit{stack} \\
-\texttt{make run-carla} & Inicia o CARLA e sobe todo o \textit{stack} em modo CARLA \\
-\texttt{make verify}    & \textit{Smoke test} do \textit{stack} no ar (API, OPC UA, twin-sync) \\
-\texttt{make test}      & Suíte unitária (\textit{pytest}, padrão AAA) \\
-\texttt{make smoke}     & Pipeline ponta a ponta offline (\textit{fakes}, sem infraestrutura) \\
-\texttt{make dev}       & Execução de desenvolvimento com \textit{hot reload} \\
-\texttt{make down}      & Derruba o \textit{stack} \\
-\texttt{make report}    & Compila este relatório em PDF \\
+\texttt{make run}         & Builda as imagens (testes como \textit{gate}) e sobe o \textit{stack} \\
+\texttt{make run-carla}  & Inicia CARLA + \textit{stack} + lança aquisição no Windows automaticamente \\
+\texttt{make carla-down} & Para containers, encerra aquisição e mata \texttt{CarlaUE4.exe} \\
+\texttt{make verify}     & \textit{Smoke test} do \textit{stack} no ar (API, OPC UA, twin-sync) \\
+\texttt{make test}       & Suíte unitária (\textit{pytest}, padrão AAA) \\
+\texttt{make smoke}      & Pipeline ponta a ponta offline (\textit{fakes}, sem infraestrutura) \\
+\texttt{make dev}        & Desenvolvimento com \textit{hot reload} (inclui twin-sync e BaSyx) \\
+\texttt{make down}       & Derruba o \textit{stack} e a infra de telemetria (\texttt{timescaledb}) \\
+\texttt{make report}     & Compila este relatório em PDF \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -286,7 +291,7 @@ Desde a versão inicial do documento, as seguintes evoluções foram implementad
 Foi implementado um sistema centralizado de logging utilizando a biblioteca \code{structlog}, configurado em \code{src/infra/logger.py}. A camada de domínio permanece livre de dependências de logging, conforme RNF1.
 
 \subsection*{Barramento MQTT e Separação Aquisição/Processamento}
-A aquisição (CARLA) publica leituras brutas no tópico \code{marchforce/telemetry/raw}. O serviço de processamento (\code{src/application/processing_service.py}) consome esse tópico, executa o modelo energético, persiste a série temporal e republica o estado processado em \code{marchforce/telemetry/processed}. O cliente MQTT (\code{src/infra/mqtt_client.py}) é o barramento lógico que desacopla os serviços; produtores e consumidores nunca se comunicam diretamente.
+A aquisição (CARLA) publica leituras brutas no tópico \code{marchforce/telemetry/raw}. O serviço de processamento (\code{src/application/processing_service.py}) consome esse tópico, executa o modelo energético, persiste a série temporal e republica o estado processado em \code{marchforce/telemetry/processed}. O cliente MQTT~\cite{oasis_mqtt} (\code{src/infra/mqtt_client.py}) é o barramento lógico que desacopla os serviços; produtores e consumidores nunca se comunicam diretamente.
 
 \subsection*{Persistência Temporal (TimescaleDB)}
 O repositório \code{src/infra/timescale_repository.py} armazena a telemetria processada em PostgreSQL/TimescaleDB (hypertable), organizada por sessão de teste, permitindo consulta de histórico e comparação entre execuções via API REST.
@@ -300,6 +305,20 @@ A camada de exposição (\code{src/api/server.py}, FastAPI) entrega o histórico
 \caption{Dashboard web em tempo real (React + Vite): \textit{endpoints} no IP real do host, pista do trajeto, cartões de KPI, gráficos ao vivo e painel de alertas (no exemplo, o alerta \code{W-IDC-HIGH} de corrente DC elevada).}
 \label{fig:dashboard}
 \end{figure}
+
+\subsection*{Conversões de Unidades na Dashboard}
+
+O \textit{backend} e o barramento MQTT operam sempre em unidades SI (velocidade em m/s, energia em J, distância em m, consumo específico em Wh/m, autonomia em s). A conversão para unidades de usuário é feita exclusivamente na camada de apresentação (\code{KpiCards.jsx} e \code{LiveCharts.jsx}):
+
+\begin{itemize}
+  \item Velocidade: $\times 3{,}6 \Rightarrow$ km/h
+  \item Energia acumulada: $\div 3600 \Rightarrow$ Wh
+  \item Distância: $\times 0{,}001 \Rightarrow$ km
+  \item Consumo específico: $\times 1000 \Rightarrow$ Wh/km
+  \item Autonomia: convertida de segundos para o formato h\,min (ex.: \texttt{1h 23min} ou \texttt{47min})
+\end{itemize}
+
+A autonomia é tratada por uma função dedicada \code{fmtAutonomy(secs)}: retorna \texttt{—} para valores nulos, \texttt{0min} para zero, e usa o piso mínimo de 5\,W na potência média para evitar que o denominador seja zero (veículo parado, SoC calculado sobre potência negligível).
 
 \subsection*{Integração com Asset Administration Shell (BaSyx)}
 A classe \code{TwinService} (camada de Informação) realiza a sincronização com a AAS \code{vehicle-digitaltwin.aasx} via Eclipse BaSyx v2 (\textit{aas-environment}, API REST). Consumindo o tópico \code{marchforce/telemetry/processed}, o serviço atualiza em tempo real os KPIs do submodelo \textbf{EnergyEfficiency} (\code{Distance}, \code{AveragePower}, \code{SpecificConsumption} e \code{Autonomy}) por PATCH REST, de forma \emph{orientada ao modelo canônico} (\code{aas_model.TELEMETRY_MODEL}). A série temporal crua não é replicada na AAS: ela é referenciada pelo \code{LinkedSegment} do submodelo \code{TimeSeries} (apontando para o TimescaleDB via API), conforme o SMT IDTA 02008. Assim, mantém-se uma única fonte de dados (sem segunda execução do CARLA) e a AAS permanece uma representação dinâmica do ativo.
@@ -342,12 +361,25 @@ A AAS também pode ser inspecionada pelo BaSyx Web UI (Figura~\ref{fig:basyx}) e
 \label{fig:swagger}
 \end{figure}
 
+\subsection*{Exposição AAS via MQTT}
+
+Além da sincronização REST com o BaSyx, o \code{TwinSyncService} publica cada elemento dos submodelos AAS como tópico MQTT independente, imediatamente após cada ciclo de PATCH. A estrutura de tópicos segue a hierarquia \code{marchforce/aas/\{Submodelo\}/\{idShort\}}, por exemplo:
+
+\begin{itemize}
+  \item \code{marchforce/aas/TimeSeries/Velocity} --- velocidade em m/s
+  \item \code{marchforce/aas/TimeSeries/InstantaneousPower} --- potência em W
+  \item \code{marchforce/aas/EnergyEfficiency/Distance} --- distância em m
+  \item \code{marchforce/aas/EnergyEfficiency/Autonomy} --- autonomia em s
+\end{itemize}
+
+Isso torna a estrutura da AAS diretamente observável por qualquer cliente MQTT (e.g., MQTT Explorer), sem necessidade de acesso à API REST do BaSyx. A publicação usa os mesmos valores e escalas definidos no modelo canônico (\code{aas_model.TELEMETRY_MODEL}), garantindo coerência entre REST, OPC UA e MQTT. A assinatura curinga \code{marchforce/aas/\#} entrega todos os elementos de ambos os submodelos dinâmicos.
+
 \subsection*{Integração OPC UA (RF8: Camada de Comunicação)}
 Foi implementado o servidor OPC UA em \code{src/application/opcua_service.py} com a biblioteca \code{asyncua}. O servidor é \emph{totalmente parametrizado por ambiente} (host, porta, \textit{path}, \textit{namespace}, nome do servidor e intervalo de atualização), sem valores fixos no código (RNF5). Ele consome o tópico \code{marchforce/telemetry/processed} e expõe a \textit{shell} do gêmeo digital, cujos nós são atualizados periodicamente.
 
 Um ponto central de projeto é que a \emph{estrutura de nós OPC UA é construída a partir do modelo canônico} (\code{src/domain/aas_model.py}, \code{TELEMETRY_MODEL}), o mesmo que origina o \code{Record} da AAS, \textbf{espelhando a hierarquia do AAS V3}: o objeto raiz recebe o \textit{idShort} da \textit{shell} (\code{VehicleEnergyDigitalTwin}) e dela pendem, como filhos diretos, os três submodelos. Assim, em vez de uma lista plana de variáveis, os nós ficam \emph{agrupados por submodelo}: \code{TimeSeries} (com \code{Velocity}, \code{Acceleration}, \code{InstantaneousPower}, \code{AccumulatedEnergy}, \code{DcVoltage}, \code{DcCurrent}, \code{StateOfCharge}), \code{EnergyEfficiency} (com \code{Distance}, \code{AveragePower}, \code{SpecificConsumption}, \code{Autonomy}) e \code{TechnicalData} (parâmetros estáticos do veículo). Os \code{idShort} OPC UA coincidem com os da AAS, garantindo uma única fonte estrutural: alterar o modelo canônico reflete simultaneamente na AAS e no espaço de endereçamento OPC UA. Endpoint padrão: \code{opc.tcp://<host>:4840/marchforce/}, conectável por clientes como o UAExpert.
 
-Cabe registrar a fronteira RAMI~4.0 adotada: o servidor \code{asyncua} provê a \emph{camada de Comunicação} (protocolo OPC UA), enquanto o BaSyx serve a AAS pela API REST (camada de Informação). A ponte canônica OPC UA~$\rightarrow$~AAS via BaSyx \textit{DataBridge} é trabalho futuro (Seção de limitações).
+Cabe registrar a fronteira RAMI~4.0 adotada: o servidor \code{asyncua} provê a \emph{camada de Comunicação} (protocolo OPC UA~\cite{iec62541}), enquanto o BaSyx serve a AAS pela API REST (camada de Informação). \textbf{Hoje, OPC UA e AAS são alimentados em paralelo pelo mesmo barramento MQTT} (exposição paralela); não há, ainda, uma ponte canônica OPC~UA~$\rightarrow$~AAS. Essa integração, via BaSyx \textit{DataBridge}, é trabalho futuro.
 
 \begin{figure}[h]
 \centering
@@ -409,7 +441,7 @@ O módulo \code{src/domain/diagnostics.py} avalia cada amostra e emite alertas c
 
 \section{Estrutura de Submodelos AAS (conforme IDTA)}
 
-A modelagem da Asset Administration Shell segue os \textit{Submodel Templates} (SMTs) padronizados da \textit{Industrial Digital Twin Association} (IDTA), garantindo interoperabilidade. A AAS (\code{aas-model/vehicle-digitaltwin.aasx}) é composta por três submodelos (Tabela~\ref{tab:aas}):
+A modelagem da Asset Administration Shell~\cite{plattform_aas} segue os \textit{Submodel Templates} (SMTs) padronizados da \textit{Industrial Digital Twin Association} (IDTA)~\cite{idta02008}, garantindo interoperabilidade. A AAS (\code{aas-model/vehicle-digitaltwin.aasx}) é composta por três submodelos (Tabela~\ref{tab:aas}):
 
 \begin{itemize}
     \item \textbf{TimeSeries} (IDTA 02008-1-1 \textit{Time Series Data}, \code{semanticId} \code{https://admin-shell.io/idta/TimeSeries/1/1}): descreve a telemetria \emph{dinâmica}. O \code{Metadata/Record} define o \textit{schema} das variáveis e o \code{Segments/LinkedSegment} referencia a base temporal (TimescaleDB) via \code{Endpoint}/\code{Query} da API, sem duplicar os dados na AAS.
@@ -499,7 +531,9 @@ A aceleração longitudinal é derivada da velocidade entre passos consecutivos,
     a_{long}(t) = \mathrm{clamp}\!\left( \frac{v_{long}(t) - v_{long}(t-\Delta t)}{\Delta t},\; -a_{max},\; a_{max} \right)
 \end{equation}
 
-O veículo é conduzido no simulador por teclado (WASD, com \code{S} acionando a ré) e acompanhado por uma câmera de perseguição. A aquisição roda no host (que possui a \textit{wheel} do CARLA) e publica as leituras no barramento MQTT, de modo que a dashboard desenha o trajeto e exibe a telemetria energética em tempo real, sem nenhum acoplamento entre o domínio e o simulador (Figuras~\ref{fig:carla} e~\ref{fig:carla_car}).
+O veículo é conduzido no simulador por teclado (WASD, com \code{S} acionando a ré) e acompanhado por uma câmera de perseguição. A aquisição roda no host Windows (única plataforma suportada pela \textit{wheel} \code{win\_amd64} do CARLA) e publica as leituras no barramento MQTT; o script \code{run\_carla.sh} a lança automaticamente via \code{powershell.exe}, eliminando a necessidade de abrir um terminal separado.
+
+O \textit{spawn} do veículo utiliza \code{try\_spawn\_actor()} em um laço que itera todos os pontos de \textit{spawn} disponíveis no mapa, evitando falha quando o ponto padrão está ocupado por sessões anteriores não encerradas. A aquisição roda no host e publica as leituras no barramento MQTT, de modo que a dashboard desenha o trajeto e exibe a telemetria energética em tempo real, sem nenhum acoplamento entre o domínio e o simulador (Figuras~\ref{fig:carla} e~\ref{fig:carla_car}).
 
 \begin{figure}[h]
 \centering
@@ -525,7 +559,7 @@ Neste trabalho considera-se apenas dinâmica longitudinal em plano horizontal.
 
 \section{RAMI 4.0}
 
-O \textit{Reference Architectural Model Industrie 4.0} (RAMI 4.0) organiza sistemas ciberfísicos em camadas hierárquicas: Ativo, Integração, Comunicação, Informação, Funcional e Negócio. Este trabalho atende explicitamente as cinco primeiras (Figura~\ref{fig:rami}): o OPC UA é o protocolo da camada de Comunicação (servidor \code{asyncua}), e o MQTT, a persistência temporal e o AAS/BaSyx compõem a camada de Informação. Cabe destacar que, no Eclipse BaSyx v2, o \textit{aas-environment} expõe o AAS por REST; a integração canônica de protocolos de campo (OPC UA, MQTT) ao AAS é feita pelo componente \textit{DataBridge} (cliente), prevista como evolução.
+O \textit{Reference Architectural Model Industrie 4.0} (RAMI 4.0)~\cite{din91345} organiza sistemas ciberfísicos em camadas hierárquicas: Ativo, Integração, Comunicação, Informação, Funcional e Negócio. Este trabalho atende explicitamente as cinco primeiras (Figura~\ref{fig:rami}): o OPC UA é o protocolo da camada de Comunicação (servidor \code{asyncua}), e o MQTT, a persistência temporal e o AAS/BaSyx compõem a camada de Informação. Cabe destacar que, no Eclipse BaSyx v2, o \textit{aas-environment} expõe o AAS por REST; a integração canônica de protocolos de campo (OPC UA, MQTT) ao AAS é feita pelo componente \textit{DataBridge} (cliente), prevista como evolução.
 
 \begin{figure}[h]
 \centering
@@ -710,6 +744,8 @@ O fluxo de telemetria é apresentado como diagrama de sequência UML na Figura~\
 \label{fig:sequencia}
 \end{figure}
 
+A latência do caminho de dados foi medida em operação: da publicação no tópico \code{raw} até a entrega do \code{processed} (248 amostras), o atraso médio foi de \textbf{5,7\,ms} (mediana 4,8\,ms; p95 9,3\,ms; máx.\ 24,1\,ms), bem abaixo do passo de simulação de 100\,ms, sustentando a operação em tempo compatível com o passo discreto (RNF4). A entrega adicional à dashboard por WebSocket é local e de sobrecarga desprezível.
+
 \section{Modos de Operação (Fonte Plugável)}
 
 Como todo o pipeline consome exclusivamente do barramento MQTT, a fonte de telemetria é \emph{plugável}: trocá-la não altera processamento, persistência, OPC UA, AAS, LoRa ou dashboard (RNF1). São suportados três modos:
@@ -750,6 +786,8 @@ Verificação por comparação entre o modelo implementado e o cálculo analíti
     \item \textbf{Frenagem regenerativa} (40--60\,s): $a = -1{,}5$\,m/s$^2$, $v$ de 30 a 0\,m/s
 \end{enumerate}
 
+Trata-se de uma \emph{verificação de consistência interna} (\textit{code verification}): o modelo é confrontado com a mesma formulação analítica que implementa, o que evidencia ausência de erros de implementação, mas \emph{não} constitui validação experimental contra dados reais. Os números desta seção usam a configuração de referência (Tabela~\ref{tab:params}, veículo de passeio); as figuras de \textit{runtime} (dashboard, OPC UA, BaSyx) usam a configuração de protótipo leve, de modo que seus valores absolutos diferem desta tabela.
+
 \section{Resultados Quantitativos}
 
 \begin{table}[h]
@@ -758,7 +796,7 @@ Verificação por comparação entre o modelo implementado e o cálculo analíti
 \label{tab:validation}
 \begin{tabular}{@{}lrrr@{}}
 \toprule
-\textbf{Fase} & \textbf{$E_{modelo}$ (kJ)} & \textbf{$E_{analitico}$ (kJ)} & \textbf{Erro (\%)} \\
+\textbf{Fase} & \textbf{$E_{modelo}$ (kJ)} & \textbf{$E_{analitico}$ (kJ)} & \textbf{Resíduo (\%)} \\
 \midrule
 Aceleração (0--15\,s)  & 760,22  & 760,22  & 0,0000 \\
 Cruzeiro (15--40\,s)   & 447,41  & 447,41  & 0,0000 \\
@@ -769,7 +807,7 @@ Frenagem (40--60\,s)   &   0,00  &   0,00  & 0,0000 \\
 \end{tabular}
 \end{table}
 
-O erro nulo confirma que a implementação reproduz fielmente a formulação matemática.
+O resíduo nulo confirma a \emph{consistência interna} da implementação (ausência de erros numéricos frente à formulação adotada), e não uma validação experimental. A fase de frenagem aparece com energia acumulada nula porque a tabela contabiliza apenas a energia de \emph{tração} ($P>0$); a recuperação regenerativa não soma energia de tração e se manifesta na recuperação do SoC (Figura~\ref{fig:validation}, painel c: 97,3\% $\rightarrow$ 98,3\%).
 
 \section{Análise Gráfica}
 
@@ -786,7 +824,7 @@ O erro nulo confirma que a implementação reproduz fielmente a formulação mat
     \item \textbf{P(t)}: modelo e analítico sobrepostos; cruzeiro em $\approx$17,5\,kW; frenagem com pico de $\approx$--50\,kW
     \item \textbf{E(t)}: crescente em tração, estável em frenagem
     \item \textbf{SoC(t)}: 100\% $\rightarrow$ 97,3\% em tração; recupera para 98,3\% com regeneração
-    \item \textbf{Indicadores}: autonomia $\approx$2800\,s em cruzeiro; consumo específico $\approx$380\,Wh/km
+    \item \textbf{Indicadores}: autonomia $\approx$2800\,s em cruzeiro; consumo específico $\approx$0,38\,Wh/m (380\,Wh/km)
 \end{itemize}
 
 \section{Classificação da Verificação}
