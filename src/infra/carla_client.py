@@ -60,7 +60,8 @@ class CarlaClient:
 
     def spawn_vehicle(self, blueprint_name: str = "vehicle.audi.tt") -> None:
         """
-        Spawn vehicle at first available spawn point.
+        Spawn vehicle at the first unoccupied spawn point.
+        Uses try_spawn_actor so a collision at one point doesn't abort the whole attempt.
         """
         if self.world is None:
             raise RuntimeError("World not initialized. Call connect() first.")
@@ -77,8 +78,17 @@ class CarlaClient:
         if blueprint is None:
             raise RuntimeError(f"Blueprint '{blueprint_name}' not found.")
 
-        self.vehicle = self.world.spawn_actor(blueprint, spawn_points[0])
-        self.set_autopilot(True)
+        for sp in spawn_points:
+            vehicle = self.world.try_spawn_actor(blueprint, sp)
+            if vehicle is not None:
+                self.vehicle = vehicle
+                self.set_autopilot(True)
+                return
+
+        raise RuntimeError(
+            f"Could not spawn '{blueprint_name}' — "
+            f"all {len(spawn_points)} spawn points are occupied."
+        )
 
     def set_autopilot(self, enabled: bool) -> None:
         """Enable/disable Traffic Manager autopilot (no-op if unchanged)."""
