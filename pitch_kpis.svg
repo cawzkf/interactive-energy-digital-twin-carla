@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 350" width="800" height="350" font-family="Arial, Helvetica, sans-serif">
+  <rect width="800" height="350" fill="#f4fdf9"/>
+
+  <!-- Header -->
+  <rect x="0" y="0" width="800" height="50" fill="#1a7a50"/>
+  <text x="400" y="32" text-anchor="middle" fill="white" font-size="19" font-weight="bold" letter-spacing="1">RESULTADOS E KPIs</text>
+
+  <defs>
+    <clipPath id="k1"><rect x="12" y="62" width="244" height="126" rx="8"/></clipPath>
+    <clipPath id="k2"><rect x="278" y="62" width="244" height="126" rx="8"/></clipPath>
+    <clipPath id="k3"><rect x="544" y="62" width="244" height="126" rx="8"/></clipPath>
+    <clipPath id="k4"><rect x="12" y="202" width="244" height="126" rx="8"/></clipPath>
+    <clipPath id="k5"><rect x="278" y="202" width="244" height="126" rx="8"/></clipPath>
+    <clipPath id="k6"><rect x="544" y="202" width="244" height="126" rx="8"/></clipPath>
+  </defs>
+
+  <!-- === LINHA 1 === -->
+
+  <!-- KPI 1: 89 testes -->
+  <rect x="12" y="62" width="244" height="126" rx="8" fill="white" stroke="#27ae60" stroke-width="1.5"/>
+  <rect x="12" y="62" width="244" height="34" fill="#27ae60" clip-path="url(#k1)"/>
+  <text x="134" y="85" text-anchor="middle" fill="white" font-size="13" font-weight="bold">TESTES UNITÁRIOS</text>
+  <text x="134" y="126" text-anchor="middle" fill="#1a7a50" font-size="40" font-weight="bold">89</text>
+  <text x="134" y="152" text-anchor="middle" fill="#555" font-size="11">Padrão AAA · domínio, serviços, config</text>
+  <text x="134" y="178" text-anchor="middle" fill="#888" font-size="10" font-style="italic">0 falhas · 0.00% resíduo numérico</text>
+
+  <!-- KPI 2: Latência -->
+  <rect x="278" y="62" width="244" height="126" rx="8" fill="white" stroke="#27ae60" stroke-width="1.5"/>
+  <rect x="278" y="62" width="244" height="34" fill="#27ae60" clip-path="url(#k2)"/>
+  <text x="400" y="85" text-anchor="middle" fill="white" font-size="13" font-weight="bold">LATÊNCIA MÉDIA</text>
+  <text x="400" y="126" text-anchor="middle" fill="#1a7a50" font-size="40" font-weight="bold">5.7ms</text>
+  <text x="400" y="152" text-anchor="middle" fill="#555" font-size="11">raw → processed · p95: 9.3 ms</text>
+  <text x="400" y="178" text-anchor="middle" fill="#888" font-size="10" font-style="italic">Passo de simulação: 100 ms</text>
+
+  <!-- KPI 3: Containers -->
+  <rect x="544" y="62" width="244" height="126" rx="8" fill="white" stroke="#27ae60" stroke-width="1.5"/>
+  <rect x="544" y="62" width="244" height="34" fill="#27ae60" clip-path="url(#k3)"/>
+  <text x="666" y="85" text-anchor="middle" fill="white" font-size="13" font-weight="bold">CONTAINERS DOCKER</text>
+  <text x="666" y="126" text-anchor="middle" fill="#1a7a50" font-size="40" font-weight="bold">16</text>
+  <text x="666" y="152" text-anchor="middle" fill="#555" font-size="11">BaSyx (9) + Telemetria (7)</text>
+  <text x="666" y="178" text-anchor="middle" fill="#888" font-size="10" font-style="italic">make run-carla (1 comando)</text>
+
+  <!-- === LINHA 2 === -->
+
+  <!-- KPI 4: Protocolos -->
+  <rect x="12" y="202" width="244" height="126" rx="8" fill="white" stroke="#1a7a50" stroke-width="1.5"/>
+  <rect x="12" y="202" width="244" height="34" fill="#1a7a50" clip-path="url(#k4)"/>
+  <text x="134" y="225" text-anchor="middle" fill="white" font-size="13" font-weight="bold">PROTOCOLOS INDUSTRIAIS</text>
+  <text x="134" y="266" text-anchor="middle" fill="#1a7a50" font-size="40" font-weight="bold">3</text>
+  <text x="134" y="292" text-anchor="middle" fill="#555" font-size="11">MQTT · OPC UA · LoRa</text>
+  <text x="134" y="318" text-anchor="middle" fill="#888" font-size="10" font-style="italic">Camadas Informação e Comunicação</text>
+
+  <!-- KPI 5: AAS Submodelos -->
+  <rect x="278" y="202" width="244" height="126" rx="8" fill="white" stroke="#1a7a50" stroke-width="1.5"/>
+  <rect x="278" y="202" width="244" height="34" fill="#1a7a50" clip-path="url(#k5)"/>
+  <text x="400" y="225" text-anchor="middle" fill="white" font-size="13" font-weight="bold">SUBMODELOS AAS (IDTA)</text>
+  <text x="400" y="266" text-anchor="middle" fill="#1a7a50" font-size="40" font-weight="bold">3</text>
+  <text x="400" y="292" text-anchor="middle" fill="#555" font-size="11">TimeSeries · EnergyEfficiency</text>
+  <text x="400" y="308" text-anchor="middle" fill="#555" font-size="11">TechnicalData</text>
+  <text x="400" y="318" text-anchor="middle" fill="#888" font-size="10" font-style="italic">REST + MQTT exposição plana</text>
+
+  <!-- KPI 6: Autonomia -->
+  <rect x="544" y="202" width="244" height="126" rx="8" fill="white" stroke="#1a7a50" stroke-width="1.5"/>
+  <rect x="544" y="202" width="244" height="34" fill="#1a7a50" clip-path="url(#k6)"/>
+  <text x="666" y="225" text-anchor="middle" fill="white" font-size="13" font-weight="bold">DASHBOARD EM TEMPO REAL</text>
+  <text x="666" y="258" text-anchor="middle" fill="#1a7a50" font-size="24" font-weight="bold">km/h · Wh/km</text>
+  <text x="666" y="284" text-anchor="middle" fill="#1a7a50" font-size="24" font-weight="bold">h:min · Wh</text>
+  <text x="666" y="308" text-anchor="middle" fill="#555" font-size="11">Conversões na camada de apresentação</text>
+  <text x="666" y="318" text-anchor="middle" fill="#888" font-size="10" font-style="italic">Backend sempre em unidades SI</text>
+</svg>
