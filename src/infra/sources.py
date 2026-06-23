@@ -13,10 +13,16 @@ def carla_source() -> TelemetrySource:
     try:
         from src.infra.carla_client import CarlaClient
 
+        from src.infra.config import AcquisitionConfig
+
         client = CarlaClient()
+        logger.info("carla_connecting", host=AcquisitionConfig.CARLA_HOST, port=AcquisitionConfig.CARLA_PORT)
         client.connect()
+        logger.info("carla_connected")
         client.spawn_vehicle()
+        logger.info("carla_vehicle_spawned")
     except Exception as e:
+        logger.error("carla_setup_failed", error=str(e))
         raise AcquisitionSourceError(f"CARLA source unavailable: {e}") from e
 
     try:
