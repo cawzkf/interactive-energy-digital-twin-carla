@@ -32,6 +32,8 @@ services:
       POSTGRES_USER: ${DB_USER:-marchforce}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-marchforce}
       POSTGRES_DB: ${DB_NAME:-telemetry}
+    ports:
+      - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
