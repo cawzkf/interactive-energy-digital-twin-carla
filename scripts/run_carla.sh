@@ -5,25 +5,11 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 APP_ENV="${APP_ENV:-dev}"
-CARLA_HOST="${CARLA_HOST:-10.255.255.254}"
+CARLA_HOST="${CARLA_HOST:-172.28.0.1}"
 CARLA_PORT="${CARLA_PORT:-2000}"
 
 mkdir -p .run
 log() { printf '\033[1;35m[carla]\033[0m %s\n' "$*"; }
-
-ACQ_RUNNER=(.venv/bin/python)
-ensure_carla_env() {
-  if ! command -v poetry >/dev/null 2>&1; then
-    log "poetry not found — using .venv (the carla wheel may be missing)"
-    return
-  fi
-  if ! poetry run python -c "import carla" >/dev/null 2>&1; then
-    log "provisioning CARLA env with Poetry (carla group)"
-    command -v python3.10 >/dev/null 2>&1 && poetry env use python3.10 >/dev/null 2>&1 || true
-    poetry install --with carla -q
-  fi
-  ACQ_RUNNER=(poetry run python)
-}
 
 log "launching CARLA on the Windows host"
 powershell.exe -ExecutionPolicy Bypass -File "$(wslpath -w carla/start-carla.ps1)" -Quality Low || true
@@ -38,12 +24,17 @@ for _ in $(seq 1 120); do
 done
 [[ "$ready" == "1" ]] && log "CARLA is up" || log "timeout waiting for CARLA — continuing anyway"
 
-log "bringing up the stack in CARLA mode (no in-container acquisition)"
+log "bringing up the stack in CARLA mode (processing + twin-sync in Docker)"
 APP_ENV="$APP_ENV" ACQ_SOURCE=carla bash scripts/deploy_docker.sh up
 
-ensure_carla_env
-log "starting host acquisition (CARLA -> MQTT) via: ${ACQ_RUNNER[*]}"
-APP_ENV="$APP_ENV" ACQ_SOURCE=carla MQTT_HOST=localhost \
-  nohup "${ACQ_RUNNER[@]}" -m src.acquisition_main >.run/acquisition.log 2>&1 &
-echo $! >.run/acquisition.pid
-log "acquisition started (pid $(cat .run/acquisition.pid)). Dashboard: http://localhost:8080"
+# The carla Python client only runs on Windows (win_amd64 wheel).
+# Launch run-acquisition.ps1 via PowerShell so it connects to CARLA locally
+# and publishes to MQTT (localhost:1883 on Windows → basyx-setup mosquitto via WSL2 port-forward).
+log "starting Windows acquisition (CARLA -> MQTT via PowerShell)"
+ACQ_PS="$(wslpath -w carla/run-acquisition.ps1)"
+powershell.exe -ExecutionPolicy Bypass \
+  -File "$ACQ_PS" -ProjectRoot "$(wslpath -w "$ROOT")" &
+echo $! >.run/acq-win.pid
+log "acquisition launched on Windows (pid $(cat .run/acq-win.pid)). Dashboard: http://localhost:8080"
+log "  AAS REST : http://localhost:8081"
+log "  AAS MQTT : marchforce/aas/{TimeSeries,EnergyEfficiency}/..."
