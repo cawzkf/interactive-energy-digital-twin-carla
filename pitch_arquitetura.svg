@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 278" width="820" height="278" font-family="Arial, Helvetica, sans-serif">
+  <rect width="820" height="278" fill="white"/>
+
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#1a7a50"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#27ae60"/>
+    </marker>
+    <!-- ClipPaths para headers arredondados -->
+    <clipPath id="pCARLA">    <rect x="8"   y="15"  width="118" height="88"  rx="7"/></clipPath>
+    <clipPath id="pMQTT">     <rect x="158" y="8"   width="130" height="112" rx="7"/></clipPath>
+    <clipPath id="pPROC">     <rect x="320" y="15"  width="148" height="88"  rx="7"/></clipPath>
+    <clipPath id="pTS">       <rect x="12"  y="168" width="148" height="98"  rx="7"/></clipPath>
+    <clipPath id="pBASYX">    <rect x="170" y="168" width="148" height="98"  rx="7"/></clipPath>
+    <clipPath id="pOPC">      <rect x="328" y="168" width="148" height="98"  rx="7"/></clipPath>
+    <clipPath id="pDASH">     <rect x="486" y="168" width="148" height="98"  rx="7"/></clipPath>
+    <clipPath id="pLORA">     <rect x="644" y="168" width="148" height="98"  rx="7"/></clipPath>
+  </defs>
+
+  <!-- ═══════ PIPELINE SUPERIOR ═══════ -->
+
+  <!-- CARLA -->
+  <rect x="8"   y="15"  width="118" height="88"  rx="7" fill="#edf9f3" stroke="#27ae60" stroke-width="1.5"/>
+  <rect x="8"   y="15"  width="118" height="30"  fill="#27ae60" clip-path="url(#pCARLA)"/>
+  <text x="67"  y="35"  text-anchor="middle" fill="white" font-size="12" font-weight="bold">CARLA</text>
+  <text x="67"  y="60"  text-anchor="middle" fill="#1a7a50" font-size="11" font-weight="bold">Simulação 3D</text>
+  <text x="67"  y="76"  text-anchor="middle" fill="#444"   font-size="10">v0.9.16 · WASD</text>
+  <text x="67"  y="91"  text-anchor="middle" fill="#666"   font-size="9">Fonte plugável</text>
+
+  <!-- Seta CARLA → MQTT -->
+  <line x1="126" y1="59" x2="152" y2="59" stroke="#1a7a50" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="139"  y="53"  text-anchor="middle" fill="#1a7a50" font-size="9" font-style="italic">raw</text>
+
+  <!-- MQTT Broker (caixa central maior) -->
+  <rect x="158" y="8"   width="130" height="112" rx="7" fill="#edf9f3" stroke="#1a7a50" stroke-width="2"/>
+  <rect x="158" y="8"   width="130" height="30"  fill="#1a7a50" clip-path="url(#pMQTT)"/>
+  <text x="223"  y="28"  text-anchor="middle" fill="white" font-size="12" font-weight="bold">MQTT Broker</text>
+  <text x="223"  y="55"  text-anchor="middle" fill="#1a7a50" font-size="10" font-weight="bold">Mosquitto</text>
+  <text x="223"  y="71"  text-anchor="middle" fill="#444"   font-size="9.5">telemetry/raw</text>
+  <text x="223"  y="85"  text-anchor="middle" fill="#444"   font-size="9.5">telemetry/processed</text>
+  <text x="223"  y="99"  text-anchor="middle" fill="#444"   font-size="9.5">marchforce/aas/#</text>
+  <text x="223"  y="113" text-anchor="middle" fill="#888"   font-size="8.5" font-style="italic">marchforce/config</text>
+
+  <!-- Seta MQTT → Processing -->
+  <line x1="288" y1="59" x2="314" y2="59" stroke="#1a7a50" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="301"  y="53"  text-anchor="middle" fill="#1a7a50" font-size="9" font-style="italic">raw</text>
+
+  <!-- Processing Service -->
+  <rect x="320" y="15"  width="148" height="88"  rx="7" fill="#edf9f3" stroke="#27ae60" stroke-width="1.5"/>
+  <rect x="320" y="15"  width="148" height="30"  fill="#27ae60" clip-path="url(#pPROC)"/>
+  <text x="394"  y="35"  text-anchor="middle" fill="white" font-size="12" font-weight="bold">Processing</text>
+  <text x="394"  y="60"  text-anchor="middle" fill="#1a7a50" font-size="11" font-weight="bold">Modelo Energético</text>
+  <text x="394"  y="76"  text-anchor="middle" fill="#444"   font-size="10">P · E · SoC · Autonomia</text>
+  <text x="394"  y="91"  text-anchor="middle" fill="#666"   font-size="9">publica → processed</text>
+
+  <!-- Seta dashed Processing → MQTT (processed de volta) -->
+  <path d="M 394 15 L 394 5 L 223 5 L 223 8" fill="none" stroke="#27ae60" stroke-width="1.3" stroke-dasharray="4,3" marker-end="url(#arr2)"/>
+  <text x="305"  y="3"   text-anchor="middle" fill="#27ae60" font-size="8" font-style="italic">processed</text>
+
+  <!-- ═══════ DISTRIBUIÇÃO ═══════ -->
+
+  <!-- Seta vertical MQTT → barra -->
+  <line x1="223" y1="120" x2="223" y2="152" stroke="#1a7a50" stroke-width="1.5"/>
+  <text x="240"  y="140" fill="#1a7a50" font-size="9" font-style="italic">processed</text>
+
+  <!-- Barra horizontal de distribuição -->
+  <line x1="86"  y1="152" x2="718" y2="152" stroke="#1a7a50" stroke-width="1.5"/>
+
+  <!-- Setas para consumers -->
+  <line x1="86"  y1="152" x2="86"  y2="162" stroke="#1a7a50" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="244" y1="152" x2="244" y2="162" stroke="#1a7a50" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="402" y1="152" x2="402" y2="162" stroke="#1a7a50" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="560" y1="152" x2="560" y2="162" stroke="#1a7a50" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="718" y1="152" x2="718" y2="162" stroke="#1a7a50" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- ═══════ CONSUMERS ═══════ -->
+
+  <!-- TimescaleDB -->
+  <rect x="12"  y="168" width="148" height="98"  rx="7" fill="#edf9f3" stroke="#1a7a50" stroke-width="1.5"/>
+  <rect x="12"  y="168" width="148" height="28"  fill="#1a7a50" clip-path="url(#pTS)"/>
+  <text x="86"   y="187" text-anchor="middle" fill="white" font-size="11" font-weight="bold">TimescaleDB</text>
+  <text x="86"   y="213" text-anchor="middle" fill="#333"  font-size="10">Persistência temporal</text>
+  <text x="86"   y="229" text-anchor="middle" fill="#555"  font-size="9">PostgreSQL · Hypertable</text>
+  <text x="86"   y="245" text-anchor="middle" fill="#555"  font-size="9">Sessões de teste</text>
+  <text x="86"   y="260" text-anchor="middle" fill="#888"  font-size="8.5" font-style="italic">Informação</text>
+
+  <!-- BaSyx AAS -->
+  <rect x="170" y="168" width="148" height="98"  rx="7" fill="#edf9f3" stroke="#1a7a50" stroke-width="1.5"/>
+  <rect x="170" y="168" width="148" height="28"  fill="#1a7a50" clip-path="url(#pBASYX)"/>
+  <text x="244"  y="187" text-anchor="middle" fill="white" font-size="11" font-weight="bold">Eclipse BaSyx</text>
+  <text x="244"  y="213" text-anchor="middle" fill="#333"  font-size="10">Asset Admin. Shell</text>
+  <text x="244"  y="229" text-anchor="middle" fill="#555"  font-size="9">REST + MQTT eventing</text>
+  <text x="244"  y="245" text-anchor="middle" fill="#555"  font-size="9">3 submodelos IDTA</text>
+  <text x="244"  y="260" text-anchor="middle" fill="#888"  font-size="8.5" font-style="italic">Informação (RAMI 4.0)</text>
+
+  <!-- OPC UA -->
+  <rect x="328" y="168" width="148" height="98"  rx="7" fill="#edf9f3" stroke="#1a7a50" stroke-width="1.5"/>
+  <rect x="328" y="168" width="148" height="28"  fill="#1a7a50" clip-path="url(#pOPC)"/>
+  <text x="402"  y="187" text-anchor="middle" fill="white" font-size="11" font-weight="bold">OPC UA</text>
+  <text x="402"  y="213" text-anchor="middle" fill="#333"  font-size="10">Protocolo industrial</text>
+  <text x="402"  y="229" text-anchor="middle" fill="#555"  font-size="9">opc.tcp://host:4840</text>
+  <text x="402"  y="245" text-anchor="middle" fill="#555"  font-size="9">Hierarquia AAS V3</text>
+  <text x="402"  y="260" text-anchor="middle" fill="#888"  font-size="8.5" font-style="italic">Comunicação (RAMI 4.0)</text>
+
+  <!-- React Dashboard -->
+  <rect x="486" y="168" width="148" height="98"  rx="7" fill="#edf9f3" stroke="#1a7a50" stroke-width="1.5"/>
+  <rect x="486" y="168" width="148" height="28"  fill="#1a7a50" clip-path="url(#pDASH)"/>
+  <text x="560"  y="187" text-anchor="middle" fill="white" font-size="11" font-weight="bold">Dashboard</text>
+  <text x="560"  y="213" text-anchor="middle" fill="#333"  font-size="10">React + Vite · FastAPI</text>
+  <text x="560"  y="229" text-anchor="middle" fill="#555"  font-size="9">REST + WebSocket</text>
+  <text x="560"  y="245" text-anchor="middle" fill="#555"  font-size="9">KPIs · Pista · Alertas</text>
+  <text x="560"  y="260" text-anchor="middle" fill="#888"  font-size="8.5" font-style="italic">Comunicação (RAMI 4.0)</text>
+
+  <!-- LoRa -->
+  <rect x="644" y="168" width="148" height="98"  rx="7" fill="#edf9f3" stroke="#1a7a50" stroke-width="1.5"/>
+  <rect x="644" y="168" width="148" height="28"  fill="#1a7a50" clip-path="url(#pLORA)"/>
+  <text x="718"  y="187" text-anchor="middle" fill="white" font-size="11" font-weight="bold">LoRa</text>
+  <text x="718"  y="213" text-anchor="middle" fill="#333"  font-size="10">Telemetria externa</text>
+  <text x="718"  y="229" text-anchor="middle" fill="#555"  font-size="9">Duty cycle · MTU mínimo</text>
+  <text x="718"  y="245" text-anchor="middle" fill="#555"  font-size="9">Alertas críticos ao box</text>
+  <text x="718"  y="260" text-anchor="middle" fill="#888"  font-size="8.5" font-style="italic">Comunicação (RAMI 4.0)</text>
+</svg>
