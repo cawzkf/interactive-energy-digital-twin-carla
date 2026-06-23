@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" width="800" height="360" font-family="Arial, Helvetica, sans-serif">
+  <rect width="800" height="360" fill="#f4fdf9"/>
+
+  <!-- Header principal -->
+  <rect x="0" y="0" width="800" height="50" fill="#1a7a50"/>
+  <text x="400" y="32" text-anchor="middle" fill="white" font-size="19" font-weight="bold" letter-spacing="1">PROBLEMAS ENCONTRADOS E SOLUÇÕES</text>
+
+  <!-- Cabeçalho da tabela -->
+  <rect x="10" y="58" width="780" height="36" rx="4" fill="#27ae60"/>
+  <text x="30" y="81" fill="white" font-size="13" font-weight="bold">#</text>
+  <text x="60" y="81" fill="white" font-size="13" font-weight="bold">Problema</text>
+  <text x="410" y="81" fill="white" font-size="13" font-weight="bold">Solução Implementada</text>
+
+  <!-- Linha separadora -->
+  <line x1="400" y1="58" x2="400" y2="354" stroke="#27ae60" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- === LINHA 1 === -->
+  <rect x="10" y="94" width="780" height="64" rx="0" fill="white"/>
+  <rect x="10" y="94" width="780" height="64" fill="none" stroke="#d0ead8" stroke-width="1"/>
+  <!-- número -->
+  <rect x="10" y="94" width="36" height="64" fill="#e8f8f0"/>
+  <text x="28" y="132" text-anchor="middle" fill="#1a7a50" font-size="18" font-weight="bold">1</text>
+  <!-- problema -->
+  <text x="60" y="118" fill="#222" font-size="12" font-weight="bold">CARLA wheel exclusivo Windows</text>
+  <text x="60" y="138" fill="#555" font-size="11">API Python (win_amd64) não instala no WSL</text>
+  <text x="60" y="152" fill="#555" font-size="11">Impossível rodar aquisição diretamente no Linux</text>
+  <!-- solução -->
+  <text x="418" y="118" fill="#222" font-size="12" font-weight="bold">Lançamento via powershell.exe do WSL</text>
+  <text x="418" y="138" fill="#555" font-size="11">run_carla.sh chama powershell.exe automaticamente</text>
+  <text x="418" y="152" fill="#555" font-size="11">Portas Docker acessíveis em localhost no Windows</text>
+
+  <!-- === LINHA 2 === -->
+  <rect x="10" y="158" width="780" height="64" fill="#f4fdf9"/>
+  <rect x="10" y="158" width="780" height="64" fill="none" stroke="#d0ead8" stroke-width="1"/>
+  <rect x="10" y="158" width="36" height="64" fill="#e8f8f0"/>
+  <text x="28" y="196" text-anchor="middle" fill="#1a7a50" font-size="18" font-weight="bold">2</text>
+  <text x="60" y="182" fill="#222" font-size="12" font-weight="bold">Spawn do veículo falha com exceção</text>
+  <text x="60" y="202" fill="#555" font-size="11">spawn_actor(pontos[0]) lança exceção se ponto</text>
+  <text x="60" y="216" fill="#555" font-size="11">0 estiver ocupado por sessão anterior</text>
+  <text x="418" y="182" fill="#222" font-size="12" font-weight="bold">Loop try_spawn_actor() em todos os pontos</text>
+  <text x="418" y="202" fill="#555" font-size="11">Itera lista completa de spawn points do mapa</text>
+  <text x="418" y="216" fill="#555" font-size="11">Usa primeiro ponto disponível sem crash</text>
+
+  <!-- === LINHA 3 === -->
+  <rect x="10" y="222" width="780" height="64" fill="white"/>
+  <rect x="10" y="222" width="780" height="64" fill="none" stroke="#d0ead8" stroke-width="1"/>
+  <rect x="10" y="222" width="36" height="64" fill="#e8f8f0"/>
+  <text x="28" y="260" text-anchor="middle" fill="#1a7a50" font-size="18" font-weight="bold">3</text>
+  <text x="60" y="246" fill="#222" font-size="12" font-weight="bold">$_ expandido pelo Make antes do PowerShell</text>
+  <text x="60" y="266" fill="#555" font-size="11">Get-Process | Where-Object { $_.Name } gerava</text>
+  <text x="60" y="280" fill="#555" font-size="11">/usr/bin/make.Name passado ao PowerShell</text>
+  <text x="418" y="246" fill="#222" font-size="12" font-weight="bold">Comando sem variável de pipeline PS</text>
+  <text x="418" y="266" fill="#555" font-size="11">Get-Process 'Carla*' -ErrorAction SilentlyContinue</text>
+  <text x="418" y="280" fill="#555" font-size="11">Elimina $_ — não há expansão pelo Make</text>
+
+  <!-- === LINHA 4 === -->
+  <rect x="10" y="286" width="780" height="64" fill="#f4fdf9"/>
+  <rect x="10" y="286" width="780" height="64" fill="none" stroke="#d0ead8" stroke-width="1"/>
+  <rect x="10" y="286" width="36" height="64" fill="#e8f8f0"/>
+  <text x="28" y="324" text-anchor="middle" fill="#1a7a50" font-size="18" font-weight="bold">4</text>
+  <text x="60" y="310" fill="#222" font-size="12" font-weight="bold">Container telemetry-timescaledb persistia</text>
+  <text x="60" y="330" fill="#555" font-size="11">make down não atuava sobre telemetry-setup/</text>
+  <text x="60" y="344" fill="#555" font-size="11">docker-compose.yml (stack separado)</text>
+  <text x="418" y="310" fill="#222" font-size="12" font-weight="bold">make down expandido para ambos os stacks</text>
+  <text x="418" y="330" fill="#555" font-size="11">Adiciona docker compose -f telemetry-setup/</text>
+  <text x="418" y="344" fill="#555" font-size="11">docker-compose.yml down ao target Makefile</text>
+
+  <!-- Borda externa da tabela -->
+  <rect x="10" y="58" width="780" height="292" rx="4" fill="none" stroke="#27ae60" stroke-width="1.5"/>
+</svg>
